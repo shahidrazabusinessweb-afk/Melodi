@@ -549,6 +549,8 @@ const CartPage = () => {
                   ""
                 ) : (
                   <>
+                    <h3 className="text-danger text-underline">Pay Now</h3>
+                    <img src="./payQR.png" alt="payment QR" className="my-2" />
                     <DropIn
                       options={{
                         authorization: clientToken,
