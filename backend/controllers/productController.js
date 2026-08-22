@@ -65,7 +65,12 @@ export const createProductController = async (req, res) => {
       category,
       shipping: shipping === true || shipping === "true",
       shippingCost: shippingCost || 0,
-      colors: colors ? JSON.parse(colors) : [],
+      colors: colors
+        ? JSON.parse(colors).map(({ color, quantity }) => ({
+            color,
+            quantity: Math.max(0, Number(quantity) || 0),
+          }))
+        : [],
       photos: [],
     });
 
@@ -137,7 +142,10 @@ export const updateProductController = async (req, res) => {
     product.shippingCost = shippingCost || product.shippingCost;
 
     if (colors) {
-      product.colors = JSON.parse(colors);
+      product.colors = JSON.parse(colors).map(({ color, quantity }) => ({
+        color,
+        quantity: Math.max(0, Number(quantity) || 0),
+      }));
     }
 
     if (req.files && req.files.length > 0) {

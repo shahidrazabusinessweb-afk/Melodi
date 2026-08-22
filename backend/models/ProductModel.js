@@ -42,7 +42,7 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
     colors: {
-      type: [String],
+      type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
     discount: {

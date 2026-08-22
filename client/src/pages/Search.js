@@ -1,6 +1,7 @@
 import React from "react";
 import { useSearch } from "../context/search";
 import ProductCard from "../components/UI/ProductCard";
+import { getColorValue } from "../lib/productColors";
 import EmptyState from "../components/UI/EmptyState";
 import { useCart } from "../context/cart";
 import { useWishlist } from "../context/wishlist";
@@ -15,7 +16,7 @@ const Search = () => {
     const item = {
       ...product,
       quantity: 1,
-      selectedColor: selectedColor || product.colors?.[0],
+      selectedColor: selectedColor || getColorValue(product.colors?.[0]),
     };
     const existing = cart.find(
       (cartItem) =>

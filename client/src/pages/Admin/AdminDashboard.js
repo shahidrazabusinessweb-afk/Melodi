@@ -19,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const [auth] = useAuth();
-  const COLORS_VISIBILITY_KEY = "productCardColorsVisible";
 
   const navigate = useNavigate();
 
@@ -33,14 +32,6 @@ const AdminDashboard = () => {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
-
-  // Product card visibility
-  const [showColorsSection, setShowColorsSection] = useState(() => {
-    if (typeof window === "undefined") return true;
-
-    const savedValue = localStorage.getItem(COLORS_VISIBILITY_KEY);
-    return savedValue === null ? true : savedValue === "true";
-  });
 
   // ================= SALES =================
 
@@ -147,16 +138,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleColorsVisibilityChange = (checked) => {
-    setShowColorsSection(checked);
-    localStorage.setItem(COLORS_VISIBILITY_KEY, String(checked));
-    window.dispatchEvent(
-      new CustomEvent("product-card-colors-toggle", {
-        detail: { show: checked },
-      }),
-    );
-  };
-
   // ================= EFFECT =================
 
   useEffect(() => {
@@ -205,22 +186,6 @@ const AdminDashboard = () => {
               >
                 Edit
               </button>
-            </div>
-          </Card>
-
-          <Card title="Product Card Settings" style={{ marginTop: 20 }}>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <h6 className="mb-1">Show color selector on product cards</h6>
-                <small className="text-muted">
-                  Turn this off to hide the colors section from all product
-                  cards.
-                </small>
-              </div>
-              <Switch
-                checked={showColorsSection}
-                onChange={handleColorsVisibilityChange}
-              />
             </div>
           </Card>
 

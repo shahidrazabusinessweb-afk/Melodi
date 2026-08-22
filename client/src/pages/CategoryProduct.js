@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import ProductCard from "../components/UI/ProductCard";
+import { getColorValue } from "../lib/productColors";
 import EmptyState from "../components/UI/EmptyState";
 import SectionHeader from "../components/UI/SectionHeader";
 import { useCart } from "../context/cart";
@@ -35,7 +36,7 @@ const CategoryProduct = () => {
     const item = {
       ...product,
       quantity: 1,
-      selectedColor: selectedColor || product.colors?.[0],
+      selectedColor: selectedColor || getColorValue(product.colors?.[0]),
     };
     const existing = cart.find(
       (cartItem) =>

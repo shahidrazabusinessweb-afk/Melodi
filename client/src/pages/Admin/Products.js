@@ -1,4 +1,4 @@
-import { Card, Col, Row, Pagination } from "antd";
+import { Card, Col, Row, Pagination, Switch } from "antd";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,7 +11,32 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
+  const [colorVisibility, setColorVisibility] = useState({});
   const limit = 12;
+
+  const getColorsVisibility = (productId) => {
+    if (Object.prototype.hasOwnProperty.call(colorVisibility, productId)) {
+      return colorVisibility[productId];
+    }
+
+    const savedValue = localStorage.getItem(
+      `productCardColorsVisible:${productId}`,
+    );
+    return savedValue === null ? true : savedValue === "true";
+  };
+
+  const handleColorsVisibilityChange = (productId, checked) => {
+    setColorVisibility((current) => ({ ...current, [productId]: checked }));
+    localStorage.setItem(
+      `productCardColorsVisible:${productId}`,
+      String(checked),
+    );
+    window.dispatchEvent(
+      new CustomEvent("product-card-colors-toggle", {
+        detail: { productId, show: checked },
+      }),
+    );
+  };
 
   const getAllProducts = async (currentPage = 1) => {
     try {
@@ -42,19 +67,33 @@ const Products = () => {
         </Col>
 
         <Col xs={24} md={18} className="dashboard-content">
-          <Card title="🛍️ All Products" className="dashboard-cards">
+          <Card
+            title="🛍️ All Products"
+            className="dashboard-cards"
+          >
             <div className="product-grid">
               {loading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <ProductCard key={i} loading={true} />
                   ))
                 : products.map((product) => (
-                    <Link
-                      key={product._id}
-                      to={`/dashboard/admin/product/${product.slug}`}
-                    >
-                      <ProductCard product={product} loading={false} />
-                    </Link>
+                    <div className="product-admin-card" key={product._id}>
+                      <div className="product-admin-card__controls">
+                        <span>Show Colors</span>
+                        <Switch
+                          aria-label={`Show colors for ${product.name}`}
+                          checked={getColorsVisibility(product._id)}
+                          onChange={(checked) =>
+                            handleColorsVisibilityChange(product._id, checked)
+                          }
+                        />
+                      </div>
+                      <Link
+                        to={`/dashboard/admin/product/${product.slug}`}
+                      >
+                        <ProductCard product={product} loading={false} />
+                      </Link>
+                    </div>
                   ))}
             </div>
 

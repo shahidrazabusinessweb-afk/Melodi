@@ -389,6 +389,16 @@ a:hover {
   gap: 1.2rem;
 }
 
+.product-admin-card__controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.8rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .product-card {
   background: var(--surface);
   border-radius: 1.5rem;

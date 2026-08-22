@@ -37,6 +37,7 @@ const UpdateProduct = () => {
 
   // Colors
   const [color, setColor] = useState("#1677ff");
+  const [colorQuantity, setColorQuantity] = useState(0);
   const [colors, setColors] = useState([]);
 
   // =======================
@@ -82,7 +83,13 @@ const UpdateProduct = () => {
       setShipping(product.shipping);
       setShippingCost(product.shippingCost || "");
 
-      setColors(product.colors || []);
+      setColors(
+        (product.colors || []).map((entry) =>
+          typeof entry === "string"
+            ? { color: entry, quantity: 0 }
+            : { color: entry.color, quantity: entry.quantity ?? 0 },
+        ),
+      );
 
       // Cloudinary images
       setExistingPhotos(product.photos || []);
@@ -103,13 +110,13 @@ const UpdateProduct = () => {
   // =======================
 
   const addColor = () => {
-    if (!colors.includes(color)) {
-      setColors([...colors, color]);
+    if (!colors.some((entry) => entry.color === color)) {
+      setColors([...colors, { color, quantity: Number(colorQuantity) || 0 }]);
     }
   };
 
   const removeColor = (selectedColor) => {
-    setColors(colors.filter((c) => c !== selectedColor));
+    setColors(colors.filter((entry) => entry.color !== selectedColor));
   };
 
   // =======================
@@ -345,23 +352,34 @@ const UpdateProduct = () => {
                     onChange={(value) => setColor(value.toHexString())}
                   />
 
+                  <span>Quantity</span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={colorQuantity}
+                    onChange={(e) => setColorQuantity(e.target.value)}
+                    className="form-control"
+                    style={{ width: 100 }}
+                  />
+
                   <Button onClick={addColor}>Add Color</Button>
                 </div>
 
                 <div className="mt-3">
-                  {colors.map((c) => (
+                  {colors.map(({ color: selectedColor, quantity }) => (
                     <Tag
-                      key={c}
+                      key={selectedColor}
                       closable
-                      onClose={() => removeColor(c)}
+                      onClose={() => removeColor(selectedColor)}
                       style={{
-                        background: c,
+                        background: selectedColor,
                         color: "#fff",
                         border: "none",
                         margin: 5,
                       }}
                     >
-                      {c}
+                      {selectedColor} ({quantity})
                     </Tag>
                   ))}
                 </div>

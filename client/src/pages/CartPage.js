@@ -8,6 +8,7 @@ import EmptyState from "../components/UI/EmptyState";
 import SectionHeader from "../components/UI/SectionHeader";
 import { useAuth } from "../context/auth";
 import { useCart } from "../context/cart";
+import { getColorQuantity, getColorValue } from "../lib/productColors";
 
 const CartPage = () => {
   const { cart, setCart } = useCart();
@@ -112,6 +113,19 @@ const CartPage = () => {
   };
   const updateQuantity = (pid, color, qty) => {
     if (qty < 1) return;
+
+    const cartItem = cart.find(
+      (item) => item._id === pid && item.selectedColor === color,
+    );
+    const selectedEntry = cartItem?.colors?.find(
+      (entry) => getColorValue(entry) === color,
+    );
+    const availableQuantity = getColorQuantity(selectedEntry);
+
+    if (availableQuantity !== null && qty > availableQuantity) {
+      toast.error(`Only ${availableQuantity} available in this color`);
+      return;
+    }
 
     const updated = cart.map((item) =>
       item._id === pid && item.selectedColor === color

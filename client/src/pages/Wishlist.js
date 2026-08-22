@@ -1,5 +1,6 @@
 import React from "react";
 import ProductCard from "../components/UI/ProductCard";
+import { getColorValue } from "../lib/productColors";
 import EmptyState from "../components/UI/EmptyState";
 import SectionHeader from "../components/UI/SectionHeader";
 import { useWishlist } from "../context/wishlist";
@@ -24,7 +25,7 @@ const Wishlist = () => {
     const item = {
       ...product,
       quantity: 1,
-      selectedColor: selectedColor || product.colors?.[0],
+      selectedColor: selectedColor || getColorValue(product.colors?.[0]),
     };
     const existing = cart.find(
       (cartItem) =>

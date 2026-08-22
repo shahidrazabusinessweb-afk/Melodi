@@ -10,6 +10,7 @@ import { useCart } from "../context/cart";
 import { useChat } from "../context/chat";
 import { useWishlist } from "../context/wishlist";
 import { Badge } from "antd";
+import { getColorQuantity, getColorValue } from "../lib/productColors";
 
 const ProductDetails = () => {
   const params = useParams();
@@ -24,7 +25,9 @@ const ProductDetails = () => {
   const [showColorsSection, setShowColorsSection] = useState(() => {
     if (typeof window === "undefined") return true;
 
-    const savedValue = localStorage.getItem("productCardColorsVisible");
+    const savedValue = localStorage.getItem(
+      `productCardColorsVisible:${product?._id}`,
+    );
     return savedValue === null ? true : savedValue === "true";
   });
 
@@ -41,7 +44,7 @@ const ProductDetails = () => {
 
   useEffect(() => {
     if (product?.colors?.length) {
-      const nextColor = selectedColor || product.colors[0];
+      const nextColor = selectedColor || getColorValue(product.colors[0]);
       setSelectedColor(nextColor);
     }
   }, [product, selectedColor, setSelectedColor]);
@@ -61,7 +64,9 @@ const ProductDetails = () => {
     const readVisibility = () => {
       if (typeof window === "undefined") return true;
 
-      const savedValue = localStorage.getItem("productCardColorsVisible");
+      const savedValue = localStorage.getItem(
+        `productCardColorsVisible:${product?._id}`,
+      );
       return savedValue === null ? true : savedValue === "true";
     };
 
@@ -72,7 +77,9 @@ const ProductDetails = () => {
     syncVisibility();
 
     const handleVisibilityChange = (event) => {
-      setShowColorsSection(event?.detail?.show ?? readVisibility());
+      if (event?.detail?.productId === product?._id) {
+        setShowColorsSection(event.detail.show);
+      }
     };
 
     window.addEventListener(
@@ -86,7 +93,7 @@ const ProductDetails = () => {
         handleVisibilityChange,
       );
     };
-  }, []);
+  }, [product?._id]);
 
   const getProduct = async () => {
     try {
@@ -118,6 +125,20 @@ const ProductDetails = () => {
 
   const addToCart = () => {
     if (!product) return;
+    const selectedEntry = product.colors?.find(
+      (entry) => getColorValue(entry) === selectedColor,
+    );
+    const availableQuantity = getColorQuantity(selectedEntry);
+
+    if (availableQuantity === 0) {
+      toast.error("This color is out of stock");
+      return;
+    }
+
+    if (availableQuantity !== null && quantity > availableQuantity) {
+      toast.error(`Only ${availableQuantity} available in this color`);
+      return;
+    }
     const existing = cart.find(
       (cartItem) =>
         cartItem._id === product._id &&
@@ -270,16 +291,21 @@ const ProductDetails = () => {
                 <strong className="text-muted">Select Color</strong>
 
                 <div className="d-flex gap-2 mt-2">
-                  {product?.colors?.map((color) => (
+                  {product?.colors?.map((colorEntry) => {
+                    const color = getColorValue(colorEntry);
+                    const outOfStock = getColorQuantity(colorEntry) === 0;
+
+                    return (
                     <div
                       key={color}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => !outOfStock && setSelectedColor(color)}
+                      aria-label={`${color}${outOfStock ? " - Out of stock" : ""}`}
                       style={{
                         width: 35,
                         height: 35,
                         borderRadius: "50%",
                         background: color,
-                        cursor: "pointer",
+                        cursor: outOfStock ? "not-allowed" : "pointer",
                         boxShadow:
                           selectedColor === color
                             ? "rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px"
@@ -288,10 +314,13 @@ const ProductDetails = () => {
                           selectedColor === color
                             ? `6px solid ${color}`
                             : "1px solid #ddd",
-                        opacity: selectedColor === color ? 1 : 0.8,
+                        opacity: outOfStock ? 0.35 : selectedColor === color ? 1 : 0.8,
                       }}
-                    />
-                  ))}
+                    >
+                      {outOfStock && <span>Out of stock</span>}
+                    </div>
+                  );
+                  })}
                 </div>
               </div>
             )}
@@ -320,7 +349,7 @@ const ProductDetails = () => {
                     {
                       ...item,
                       quantity: 1,
-                      selectedColor: color || item.colors?.[0],
+                      selectedColor: color || getColorValue(item.colors?.[0]),
                     },
                   ];
 

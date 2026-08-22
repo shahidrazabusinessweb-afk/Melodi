@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import AdSlider from "../components/AdSlider";
 import EmptyState from "../components/UI/EmptyState";
 import ProductCard from "../components/UI/ProductCard";
+import { getColorValue } from "../lib/productColors";
 import SectionHeader from "../components/UI/SectionHeader";
 import { useCart } from "../context/cart";
 import { useWishlist } from "../context/wishlist";
@@ -92,7 +93,7 @@ const HomePage = () => {
     const item = {
       ...product,
       quantity: 1,
-      selectedColor: selectedColor || product.colors?.[0],
+      selectedColor: selectedColor || getColorValue(product.colors?.[0]),
     };
     const existing = cart.find(
       (cartItem) =>

@@ -28,6 +28,7 @@ const CreateProduct = () => {
 
   // Colors
   const [color, setColor] = useState("#1677ff");
+  const [colorQuantity, setColorQuantity] = useState(0);
   const [colors, setColors] = useState([]);
 
   // Fetch Categories
@@ -52,14 +53,14 @@ const CreateProduct = () => {
 
   // Add Color
   const addColor = () => {
-    if (!colors.includes(color)) {
-      setColors([...colors, color]);
+    if (!colors.some((entry) => entry.color === color)) {
+      setColors([...colors, { color, quantity: Number(colorQuantity) || 0 }]);
     }
   };
 
   // Remove Color
   const removeColor = (selectedColor) => {
-    setColors(colors.filter((c) => c !== selectedColor));
+    setColors(colors.filter((entry) => entry.color !== selectedColor));
   };
 
   // Create Product
@@ -267,23 +268,34 @@ const CreateProduct = () => {
                     onChange={(value) => setColor(value.toHexString())}
                   />
 
+                  <span>Quantity</span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={colorQuantity}
+                    onChange={(e) => setColorQuantity(e.target.value)}
+                    className="form-control"
+                    style={{ width: 100 }}
+                  />
+
                   <Button onClick={addColor}>Add Color</Button>
                 </div>
 
                 <div className="mt-3">
-                  {colors.map((c) => (
+                  {colors.map(({ color: selectedColor, quantity }) => (
                     <Tag
-                      key={c}
+                      key={selectedColor}
                       closable
-                      onClose={() => removeColor(c)}
+                      onClose={() => removeColor(selectedColor)}
                       style={{
-                        background: c,
+                        background: selectedColor,
                         color: "#fff",
                         border: "none",
                         margin: 5,
                       }}
                     >
-                      {c}
+                      {selectedColor} ({quantity})
                     </Tag>
                   ))}
                 </div>

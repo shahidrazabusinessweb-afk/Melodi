@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Skeleton } from "antd";
+import { Skeleton, Tooltip } from "antd";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { getColorQuantity, getColorValue } from "../../lib/productColors";
 
 const ProductCard = ({
   product,
@@ -23,7 +25,9 @@ const ProductCard = ({
   const [selectedColor, setSelectedColor] = useState("");
 
   const [showColorsSection, setShowColorsSection] = useState(() => {
-    const saved = localStorage.getItem("productCardColorsVisible");
+    const saved = localStorage.getItem(
+      `productCardColorsVisible:${product?._id}`,
+    );
 
     return saved === null ? true : saved === "true";
   });
@@ -32,7 +36,7 @@ const ProductCard = ({
 
   useEffect(() => {
     if (product?.colors?.length) {
-      setSelectedColor(product.colors[0]);
+      setSelectedColor(getColorValue(product.colors[0]));
     }
 
     setActiveImage(0);
@@ -40,24 +44,37 @@ const ProductCard = ({
 
   useEffect(() => {
     const updateVisibility = () => {
-      const value = localStorage.getItem("productCardColorsVisible");
+      const value = localStorage.getItem(
+        `productCardColorsVisible:${product?._id}`,
+      );
 
-      setShowColorsSection(value === null ? true : value === "true");
+      if (value !== null) {
+        setShowColorsSection(value === "true");
+      }
     };
 
-    window.addEventListener("product-card-colors-toggle", updateVisibility);
+    const handleVisibilityChange = (event) => {
+      if (event.detail?.productId === product?._id) {
+        setShowColorsSection(event.detail.show);
+      }
+    };
+
+    window.addEventListener(
+      "product-card-colors-toggle",
+      handleVisibilityChange,
+    );
 
     window.addEventListener("storage", updateVisibility);
 
     return () => {
       window.removeEventListener(
         "product-card-colors-toggle",
-        updateVisibility,
+        handleVisibilityChange,
       );
 
       window.removeEventListener("storage", updateVisibility);
     };
-  }, []);
+  }, [product?._id]);
 
   useEffect(() => {
     if (!product?.photos || product.photos.length <= 1) return;
@@ -96,6 +113,20 @@ const ProductCard = ({
       behavior: "smooth",
     });
   };
+
+  const handleAddToCart = () => {
+    const selectedEntry = product?.colors?.find(
+      (entry) => getColorValue(entry) === selectedColor,
+    );
+
+    if (getColorQuantity(selectedEntry) === 0) {
+      toast.error("This color is out of stock");
+      return;
+    }
+
+    onAddToCart(product, selectedColor);
+  };
+
 
   return (
     <article className="product-card">
@@ -245,31 +276,51 @@ const ProductCard = ({
                     }}
                     className="color-scroll"
                   >
-                    {product?.colors?.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        aria-label={`Select ${color}`}
-                        onClick={() => setSelectedColor(color)}
-                        style={{
-                          minWidth: 35,
-                          height: 35,
-                          borderRadius: "50%",
-                          background: color,
-                          cursor: "pointer",
-                          flex: "0 0 auto",
-                          boxShadow:
-                            selectedColor === color
-                              ? "rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px"
-                              : "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px ",
-                          border:
-                            selectedColor === color
-                              ? "0.5px solid gray"
-                              : "none",
-                          opacity: selectedColor === color ? 1 : 0.8,
-                        }}
-                      />
-                    ))}
+                    {product?.colors?.map((colorEntry) => {
+                      const color = getColorValue(colorEntry);
+                      const quantity = getColorQuantity(colorEntry);
+                      const outOfStock = quantity === 0;
+
+                      const colorButton = (
+                        <button
+                          key={color}
+                          type="button"
+                          aria-label={`${color}${outOfStock ? " - Out of stock" : ""}`}
+                          disabled={outOfStock}
+                          onClick={() => setSelectedColor(color)}
+                          style={{
+                            minWidth: 35,
+                            height: 35,
+                            borderRadius: "50%",
+                            background: color,
+                            cursor: outOfStock ? "not-allowed" : "pointer",
+                            flex: "0 0 auto",
+                            boxShadow:
+                              selectedColor === color
+                                ? "rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px"
+                                : "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px ",
+                            border:
+                              selectedColor === color
+                                ? "0.5px solid gray"
+                                : "none",
+                            opacity:
+                              outOfStock
+                                ? 0.35
+                                : selectedColor === color
+                                  ? 1
+                                  : 0.8,
+                          }}
+                        />
+                      );
+
+                      return outOfStock ? (
+                        <Tooltip key={`tooltip-${color}`} title="Out of stock">
+                          {colorButton}
+                        </Tooltip>
+                      ) : (
+                        colorButton
+                      );
+                    })}
                   </div>
 
                   <button
@@ -283,6 +334,7 @@ const ProductCard = ({
               </div>
             )}
 
+
             {onAddToCart && (
               <div className="product-card__actions">
                 <button
@@ -295,7 +347,7 @@ const ProductCard = ({
 
                 <button
                   className="btn btn-primary btn-icon"
-                  onClick={() => onAddToCart?.(product, selectedColor)}
+                  onClick={handleAddToCart}
                 >
                   <i className="bi bi-cart-plus-fill" />
                   <span>Add</span>
