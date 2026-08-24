@@ -4,8 +4,8 @@ import fs from "fs";
 
 export const createCategoryController = async (req, res) => {
   try {
-    const { name } = req.fields;
-    const { image } = req.files;
+    const { name, brandName, sizeType } = req.fields || {};
+    const { image } = req.files || {};
 
     if (!name) {
       return res.status(400).send({
@@ -16,6 +16,10 @@ export const createCategoryController = async (req, res) => {
 
     const category = new CategoryModel({
       name,
+      brandName,
+      sizeType: ["none", "dimensions", "apparel"].includes(sizeType)
+        ? sizeType
+        : "none",
       slug: slugify(name),
     });
 
@@ -44,8 +48,8 @@ export const createCategoryController = async (req, res) => {
 
 export const updateCategoryController = async (req, res) => {
   try {
-    const { name } = req.fields;
-    const { image } = req.files;
+    const { name, brandName, sizeType } = req.fields || {};
+    const { image } = req.files || {};
 
     const category = await CategoryModel.findById(req.params.id);
 
@@ -57,6 +61,10 @@ export const updateCategoryController = async (req, res) => {
     }
 
     category.name = name;
+    category.brandName = brandName;
+    category.sizeType = ["none", "dimensions", "apparel"].includes(sizeType)
+      ? sizeType
+      : "none";
     category.slug = slugify(name);
 
     if (image) {

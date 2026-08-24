@@ -7,6 +7,16 @@ const categorySchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    brandName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    sizeType: {
+      type: String,
+      enum: ["none", "dimensions", "apparel"],
+      default: "none",
+    },
     slug: {
       type: String,
       lowercase: true,

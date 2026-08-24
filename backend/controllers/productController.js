@@ -21,6 +21,8 @@ export const createProductController = async (req, res) => {
       shipping,
       shippingCost,
       colors,
+      sizes,
+      dimensions,
     } = req.body;
 
     const photos = req.files;
@@ -71,6 +73,8 @@ export const createProductController = async (req, res) => {
             quantity: Math.max(0, Number(quantity) || 0),
           }))
         : [],
+      sizes: sizes ? JSON.parse(sizes) : [],
+      dimensions: dimensions ? JSON.parse(dimensions) : undefined,
       photos: [],
     });
 
@@ -118,6 +122,8 @@ export const updateProductController = async (req, res) => {
       shipping,
       shippingCost,
       colors,
+      sizes,
+      dimensions,
     } = req.body;
 
     const files = req.files;
@@ -146,6 +152,14 @@ export const updateProductController = async (req, res) => {
         color,
         quantity: Math.max(0, Number(quantity) || 0),
       }));
+    }
+
+    if (sizes !== undefined) {
+      product.sizes = JSON.parse(sizes);
+    }
+
+    if (dimensions !== undefined) {
+      product.dimensions = JSON.parse(dimensions);
     }
 
     if (req.files && req.files.length > 0) {

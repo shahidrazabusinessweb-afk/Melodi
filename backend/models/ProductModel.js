@@ -45,6 +45,14 @@ const productSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
+    sizes: {
+      type: [String],
+      default: [],
+    },
+    dimensions: {
+      height: { type: Number },
+      width: { type: Number },
+    },
     discount: {
       type: Number,
       required: true,

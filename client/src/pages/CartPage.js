@@ -103,19 +103,19 @@ const CartPage = () => {
 
   const finalTotal = Math.max(getGrandTotal() - discount, 0);
 
-  const removeCartItem = (pid, color) => {
+  const removeCartItem = (pid, color, size) => {
     const updatedCart = cart.filter(
-      (item) => !(item._id === pid && item.selectedColor === color),
+      (item) => !(item._id === pid && item.selectedColor === color && item.selectedSize === size),
     );
     toast.success("Removed Item Successfully");
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
-  const updateQuantity = (pid, color, qty) => {
+  const updateQuantity = (pid, color, size, qty) => {
     if (qty < 1) return;
 
     const cartItem = cart.find(
-      (item) => item._id === pid && item.selectedColor === color,
+      (item) => item._id === pid && item.selectedColor === color && item.selectedSize === size,
     );
     const selectedEntry = cartItem?.colors?.find(
       (entry) => getColorValue(entry) === color,
@@ -128,7 +128,7 @@ const CartPage = () => {
     }
 
     const updated = cart.map((item) =>
-      item._id === pid && item.selectedColor === color
+      item._id === pid && item.selectedColor === color && item.selectedSize === size
         ? { ...item, quantity: qty }
         : item,
     );
@@ -312,7 +312,7 @@ const CartPage = () => {
             <AnimatePresence>
               {cart?.map((p) => (
                 <motion.div
-                  key={`${p._id}-${p.selectedColor}`}
+                  key={`${p._id}-${p.selectedColor}-${p.selectedSize}`}
                   layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -329,7 +329,7 @@ const CartPage = () => {
                   }}
                 >
                   <div
-                    key={`${p._id}-${p.selectedColor}`}
+                    key={`${p._id}-${p.selectedColor}-${p.selectedSize}`}
                     className={`row m-2 p-2 card flex-row align-items-center cart-item 
                     `}
                   >
@@ -343,6 +343,12 @@ const CartPage = () => {
                     <div className="col-9 col-md-7">
                       <h5>{p.name}</h5>
                       <p className="muted">{p.description.substring(0, 60)}</p>
+                      {p.selectedSize && (
+                        <p className="mb-2"><strong>Size:</strong> {p.selectedSize}</p>
+                      )}
+                      {p.dimensions?.height && p.dimensions?.width && (
+                        <p className="mb-2"><strong>Dimensions:</strong> {p.dimensions.height} x {p.dimensions.width}</p>
+                      )}
 
                       <div className="mb-3">
                         <div className="d-flex gap-2 mt-2">
@@ -367,6 +373,7 @@ const CartPage = () => {
                               updateQuantity(
                                 p._id,
                                 p.selectedColor,
+                                p.selectedSize,
                                 (p.quantity || 1) - 1,
                               )
                             }
@@ -381,6 +388,7 @@ const CartPage = () => {
                               updateQuantity(
                                 p._id,
                                 p.selectedColor,
+                                p.selectedSize,
                                 (p.quantity || 1) + 1,
                               )
                             }
@@ -414,7 +422,7 @@ const CartPage = () => {
                     <div className="col-12 col-md-3 text-end">
                       <button
                         className="btn btn-danger"
-                        onClick={() => removeCartItem(p._id, p.selectedColor)}
+                        onClick={() => removeCartItem(p._id, p.selectedColor, p.selectedSize)}
                       >
                         Remove
                       </button>

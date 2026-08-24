@@ -239,6 +239,7 @@ const ProductCard = ({
             <div className="product-card__meta">
               <span className="product-card__price">
                 &#8377; {product?.price}
+
                 <span className="text-decoration-line-through text-muted mx-2 fs-6">
                   &#8377;{" "}
                   {Math.round(
@@ -247,6 +248,9 @@ const ProductCard = ({
                 </span>
               </span>
             </div>
+              <div className="text-muted ">
+                {product?.shipping ? `Shipping Charges:  ₹${product.shippingCost}` : "Free Shipping"}
+              </div>
 
             {/* COLORS */}
 

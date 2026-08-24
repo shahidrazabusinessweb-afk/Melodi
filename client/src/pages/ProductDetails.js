@@ -9,7 +9,7 @@ import SectionHeader from "../components/UI/SectionHeader";
 import { useCart } from "../context/cart";
 import { useChat } from "../context/chat";
 import { useWishlist } from "../context/wishlist";
-import { Badge } from "antd";
+import { Badge, Tooltip } from "antd";
 import { getColorQuantity, getColorValue } from "../lib/productColors";
 
 const ProductDetails = () => {
@@ -18,6 +18,7 @@ const ProductDetails = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState("");
   const { cart, setCart } = useCart();
   const [wishlist, setWishlist] = useWishlist();
   const [activeImage, setActiveImage] = useState(0);
@@ -58,6 +59,7 @@ const ProductDetails = () => {
 
   useEffect(() => {
     setActiveImage(0);
+    setSelectedSize("");
   }, [product]);
 
   useEffect(() => {
@@ -125,6 +127,10 @@ const ProductDetails = () => {
 
   const addToCart = () => {
     if (!product) return;
+    if (product.sizes?.length && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
     const selectedEntry = product.colors?.find(
       (entry) => getColorValue(entry) === selectedColor,
     );
@@ -142,11 +148,14 @@ const ProductDetails = () => {
     const existing = cart.find(
       (cartItem) =>
         cartItem._id === product._id &&
-        cartItem.selectedColor === selectedColor,
+        cartItem.selectedColor === selectedColor &&
+        cartItem.selectedSize === selectedSize,
     );
     const updatedCart = existing
       ? cart.map((item) =>
-          item._id === product._id && item.selectedColor === selectedColor
+          item._id === product._id &&
+          item.selectedColor === selectedColor &&
+          item.selectedSize === selectedSize
             ? {
                 ...item,
                 quantity: item.quantity + quantity,
@@ -159,6 +168,7 @@ const ProductDetails = () => {
             ...product,
             quantity,
             selectedColor,
+            selectedSize,
           },
         ];
     setCart(updatedCart);
@@ -195,6 +205,7 @@ const ProductDetails = () => {
       color: "#f7b538",
       fontWeight: "bold",
       letterSpacing: "5px",
+      fontSize: "18px"
     },
   };
 
@@ -205,7 +216,7 @@ const ProductDetails = () => {
           <div className="product-detail-gallery">
             {/* Main Image */}
             <Badge.Ribbon
-              text="MELODI"
+              text={product.category?.brandName || product.category?.name}
               color="rgba(7, 70, 49, 0.90)"
               styles={ribbonStyles}
               placement="start"
@@ -286,6 +297,30 @@ const ProductDetails = () => {
               </button>
             </div>
 
+            {product.dimensions?.height && product.dimensions?.width && (
+              <p className="mt-3">
+                <strong>Dimensions:</strong> {product.dimensions.height} x {product.dimensions.width}
+              </p>
+            )}
+
+            {product.sizes?.length > 0 && (
+              <div className="mb-3">
+                <strong className="text-muted">Select Size</strong>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={`btn ${selectedSize === size ? "btn-success" : "btn-light"}`}
+                      onClick={() => setSelectedSize(size)}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {showColorsSection && (
               <div className="mb-3">
                 <strong className="text-muted">Select Color</strong>
@@ -295,31 +330,45 @@ const ProductDetails = () => {
                     const color = getColorValue(colorEntry);
                     const outOfStock = getColorQuantity(colorEntry) === 0;
 
-                    return (
-                    <div
-                      key={color}
-                      onClick={() => !outOfStock && setSelectedColor(color)}
-                      aria-label={`${color}${outOfStock ? " - Out of stock" : ""}`}
-                      style={{
-                        width: 35,
-                        height: 35,
-                        borderRadius: "50%",
-                        background: color,
-                        cursor: outOfStock ? "not-allowed" : "pointer",
-                        boxShadow:
-                          selectedColor === color
-                            ? "rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px"
-                            : "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px ",
-                        border:
-                          selectedColor === color
-                            ? `6px solid ${color}`
-                            : "1px solid #ddd",
-                        opacity: outOfStock ? 0.35 : selectedColor === color ? 1 : 0.8,
-                      }}
-                    >
-                      {outOfStock && <span>Out of stock</span>}
-                    </div>
-                  );
+                    const colorButton = (
+                      <button
+                        key={color}
+                        type="button"
+                        aria-label={`${color}${outOfStock ? " - Out of stock" : ""}`}
+                        disabled={outOfStock}
+                        onClick={() => setSelectedColor(color)}
+                        style={{
+                          width: 35,
+                          height: 35,
+                          padding: 0,
+                          borderRadius: "50%",
+                          background: color,
+                          cursor: outOfStock ? "not-allowed" : "pointer",
+                          boxShadow:
+                            selectedColor === color
+                              ? "rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px"
+                              : "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px ",
+                          border:
+                            selectedColor === color
+                              ? `6px solid ${color}`
+                              : "1px solid #ddd",
+                          opacity:
+                            outOfStock
+                              ? 0.35
+                              : selectedColor === color
+                                ? 1
+                                : 0.8,
+                        }}
+                      />
+                    );
+
+                    return outOfStock ? (
+                      <Tooltip key={`tooltip-${color}`} title="Out of stock">
+                        {colorButton}
+                      </Tooltip>
+                    ) : (
+                      colorButton
+                    );
                   })}
                 </div>
               </div>
@@ -341,7 +390,7 @@ const ProductDetails = () => {
           <div className="product-grid">
             {relatedProducts.map((product) => (
               <ProductCard
-                key={`${product._id}-${product.selectedColor}`}
+                  key={`${product._id}-${product.selectedColor}-${product.selectedSize}`}
                 product={product}
                 onAddToCart={(item, color) => {
                   const updated = [
@@ -350,6 +399,7 @@ const ProductDetails = () => {
                       ...item,
                       quantity: 1,
                       selectedColor: color || getColorValue(item.colors?.[0]),
+                      selectedSize: item.sizes?.[0] || "",
                     },
                   ];
 

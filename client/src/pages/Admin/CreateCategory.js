@@ -11,9 +11,13 @@ import Loader from "../../components/UI/Loader";
 const CreateCategory = () => {
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [sizeType, setSizeType] = useState("none");
   const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState(null);
   const [updatedName, setUpdatedName] = useState("");
+  const [updatedBrandName, setUpdatedBrandName] = useState("");
+  const [updatedSizeType, setUpdatedSizeType] = useState("none");
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(null);
   const [updatedImage, setUpdatedImage] = useState(null);
@@ -49,6 +53,8 @@ const CreateCategory = () => {
       const categoryData = new FormData();
 
       categoryData.append("name", name);
+      categoryData.append("brandName", brandName);
+      categoryData.append("sizeType", sizeType);
 
       if (image) {
         categoryData.append("image", image);
@@ -62,6 +68,8 @@ const CreateCategory = () => {
       if (data.success) {
         toast.success("Category created");
         setName("");
+        setBrandName("");
+        setSizeType("none");
         setImage(null);
         getAllCategory();
       }
@@ -78,6 +86,8 @@ const CreateCategory = () => {
       const categoryData = new FormData();
 
       categoryData.append("name", updatedName);
+      categoryData.append("brandName", updatedBrandName);
+      categoryData.append("sizeType", updatedSizeType);
 
       if (updatedImage) {
         categoryData.append("image", updatedImage);
@@ -92,6 +102,7 @@ const CreateCategory = () => {
         toast.success("Category updated");
         setVisible(false);
         setUpdatedImage(null);
+        setUpdatedBrandName("");
         getAllCategory();
       }
     } catch (error) {
@@ -150,6 +161,25 @@ const CreateCategory = () => {
       width: 100,
     },
     {
+      title: "Brand Name",
+      dataIndex: "brandName",
+      key: "brandName",
+      width: 100,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Size Type",
+      dataIndex: "sizeType",
+      key: "sizeType",
+      width: 150,
+      render: (value) =>
+        value === "dimensions"
+          ? "Height and width"
+          : value === "apparel"
+            ? "Dress sizes"
+            : "No sizes",
+    },
+    {
       title: "Actions",
       key: "actions",
       width: 120,
@@ -162,6 +192,8 @@ const CreateCategory = () => {
               setVisible(true);
               setSelected(record);
               setUpdatedName(record.name);
+              setUpdatedBrandName(record.brandName || "");
+              setUpdatedSizeType(record.sizeType || "none");
               setUpdatedImage(null);
             }}
           >
@@ -225,6 +257,10 @@ const CreateCategory = () => {
               handleSubmit={handleSubmit}
               value={name}
               setValue={setName}
+              brandName={brandName}
+              setBrandName={setBrandName}
+              sizeType={sizeType}
+              setSizeType={setSizeType}
             />
           </Card>
 
@@ -290,6 +326,10 @@ const CreateCategory = () => {
         <CategoryForm
           value={updatedName}
           setValue={setUpdatedName}
+          brandName={updatedBrandName}
+          setBrandName={setUpdatedBrandName}
+          sizeType={updatedSizeType}
+          setSizeType={setUpdatedSizeType}
           handleSubmit={handleUpdate}
           editForm
         />

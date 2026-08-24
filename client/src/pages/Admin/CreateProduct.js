@@ -20,6 +20,9 @@ const CreateProduct = () => {
   const [discount, setDiscount] = useState("");
 
   const [category, setCategory] = useState("");
+  const [dimensions, setDimensions] = useState({ height: "", width: "" });
+  const [sizes, setSizes] = useState([]);
+  const [sizeInput, setSizeInput] = useState("");
 
   const [shipping, setShipping] = useState(undefined);
   const [shippingCost, setShippingCost] = useState("");
@@ -64,6 +67,17 @@ const CreateProduct = () => {
     setColors(colors.filter((entry) => entry.color !== selectedColor));
   };
 
+  const selectedCategory = categories.find((entry) => entry._id === category);
+  const sizeType = selectedCategory?.sizeType || "none";
+
+  const addSize = () => {
+    const nextSize = sizeInput.trim().toUpperCase();
+    if (nextSize && !sizes.includes(nextSize)) {
+      setSizes([...sizes, nextSize]);
+      setSizeInput("");
+    }
+  };
+
   const pickColor = async () => {
     if (!window.EyeDropper) {
       toast.error("Eye dropper is not supported by this browser");
@@ -96,6 +110,8 @@ const CreateProduct = () => {
       productData.append("shipping", shipping);
       productData.append("shippingCost", shippingCost);
       productData.append("colors", JSON.stringify(colors));
+      productData.append("sizes", JSON.stringify(sizeType === "apparel" ? sizes : []));
+      productData.append("dimensions", JSON.stringify(sizeType === "dimensions" ? dimensions : {}));
 
       // Append Multiple Images
       photo.forEach((file) => {
@@ -116,6 +132,9 @@ const CreateProduct = () => {
         setPrice("");
         setDiscount("");
         setCategory("");
+        setDimensions({ height: "", width: "" });
+        setSizes([]);
+        setSizeInput("");
         setShipping(undefined);
         setShippingCost("");
         setPhoto([]);
@@ -149,7 +168,11 @@ const CreateProduct = () => {
                 size="large"
                 showSearch
                 className="form-control mb-3"
-                onChange={(value) => setCategory(value)}
+                onChange={(value) => {
+                  setCategory(value);
+                  setDimensions({ height: "", width: "" });
+                  setSizes([]);
+                }}
               >
                 {categories?.map((c) => (
                   <Option key={c._id} value={c._id}>
@@ -157,6 +180,29 @@ const CreateProduct = () => {
                   </Option>
                 ))}
               </Select>
+
+              <div className="text-muted mb-2">
+                Size type: {sizeType === "dimensions" ? "Height and width" : sizeType === "apparel" ? "Dress sizes" : "No sizes"}
+              </div>
+
+              {sizeType === "dimensions" && (
+                <div className="mb-3 d-flex gap-2">
+                  <input type="number" min="0" className="form-control" placeholder="Height" value={dimensions.height} onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })} />
+                  <input type="number" min="0" className="form-control" placeholder="Width" value={dimensions.width} onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })} />
+                </div>
+              )}
+
+              {sizeType === "apparel" && (
+                <div className="mb-3">
+                  <div className="d-flex gap-2 align-items-center">
+                    <input className="form-control" placeholder="Enter size (S, M, L, XL)" value={sizeInput} onChange={(e) => setSizeInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSize())} />
+                    <button className="btn btn-outline-success btn-sm text-nowrap" onClick={addSize}>Add Size</button>
+                  </div>
+                  <div className="mt-2">
+                    {sizes.map((size) => <Tag key={size} color={"magenta"} variant={"outlined"} className="me-3" closable onClose={() => setSizes(sizes.filter((entry) => entry !== size))}>{size}</Tag>)}
+                  </div>
+                </div>
+              )}
 
               {/* Product Name */}
               <div className="mb-3">
