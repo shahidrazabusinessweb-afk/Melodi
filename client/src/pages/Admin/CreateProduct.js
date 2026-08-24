@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { Card, Col, Row, Select, ColorPicker, Button, Tag } from "antd";
 import { useNavigate } from "react-router-dom";
+import { FaEyeDropper } from "react-icons/fa6";
 
 const { Option } = Select;
 
@@ -61,6 +62,23 @@ const CreateProduct = () => {
   // Remove Color
   const removeColor = (selectedColor) => {
     setColors(colors.filter((entry) => entry.color !== selectedColor));
+  };
+
+  const pickColor = async () => {
+    if (!window.EyeDropper) {
+      toast.error("Eye dropper is not supported by this browser");
+      return;
+    }
+
+    try {
+      const eyeDropper = new window.EyeDropper();
+      const { sRGBHex } = await eyeDropper.open();
+      setColor(sRGBHex);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        toast.error("Unable to pick a color");
+      }
+    }
   };
 
   // Create Product
@@ -140,47 +158,6 @@ const CreateProduct = () => {
                 ))}
               </Select>
 
-              {/* Upload Images */}
-              <div className="mb-3">
-                <label className="btn btn-outline-secondary col-md-12">
-                  {photo.length > 0
-                    ? `${photo.length} Image(s) Selected`
-                    : "Upload Product Images"}
-
-                  <input
-                    type="file"
-                    name="photos"
-                    accept="image/*"
-                    multiple
-                    hidden
-                    onChange={(e) => setPhoto(Array.from(e.target.files))}
-                  />
-                </label>
-              </div>
-
-              {/* Image Preview */}
-              <div className="mb-3">
-                {photo.length > 0 && (
-                  <div className="d-flex flex-wrap gap-3">
-                    {photo.map((img, index) => (
-                      <div key={index}>
-                        <img
-                          src={URL.createObjectURL(img)}
-                          alt={`preview-${index}`}
-                          width={150}
-                          height={150}
-                          style={{
-                            objectFit: "cover",
-                            borderRadius: "8px",
-                            border: "1px solid #ddd",
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* Product Name */}
               <div className="mb-3">
                 <input
@@ -258,6 +235,47 @@ const CreateProduct = () => {
                 )}
               </div>
 
+                  {/* Upload Images */}
+              <div className="mb-3">
+                <label className="btn btn-outline-secondary col-md-12">
+                  {photo.length > 0
+                    ? `${photo.length} Image(s) Selected`
+                    : "Upload Product Images"}
+
+                  <input
+                    type="file"
+                    name="photos"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => setPhoto(Array.from(e.target.files))}
+                  />
+                </label>
+              </div>
+
+              {/* Image Preview */}
+              <div className="mb-3">
+                {photo.length > 0 && (
+                  <div className="d-flex flex-wrap gap-3">
+                    {photo.map((img, index) => (
+                      <div key={index}>
+                        <img
+                          src={URL.createObjectURL(img)}
+                          alt={`preview-${index}`}
+                          width={150}
+                          height={150}
+                          style={{
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                            border: "1px solid #ddd",
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Colors */}
               <div className="mb-3">
                 <h6>Available Colors</h6>
@@ -266,6 +284,14 @@ const CreateProduct = () => {
                   <ColorPicker
                     value={color}
                     onChange={(value) => setColor(value.toHexString())}
+                  />
+
+                  <Button
+                    type="default"
+                    icon={<FaEyeDropper />}
+                    aria-label="Pick color from screen"
+                    title="Pick color from screen"
+                    onClick={pickColor}
                   />
 
                   <span>Quantity</span>

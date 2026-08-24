@@ -4,6 +4,7 @@ import { Button, Card, Col, ColorPicker, Row, Select, Tag } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { FaEyeDropper } from "react-icons/fa6";
 
 const { Option } = Select;
 
@@ -119,6 +120,23 @@ const UpdateProduct = () => {
     setColors(colors.filter((entry) => entry.color !== selectedColor));
   };
 
+  const pickColor = async () => {
+    if (!window.EyeDropper) {
+      toast.error("Eye dropper is not supported by this browser");
+      return;
+    }
+
+    try {
+      const eyeDropper = new window.EyeDropper();
+      const { sRGBHex } = await eyeDropper.open();
+      setColor(sRGBHex);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        toast.error("Unable to pick a color");
+      }
+    }
+  };
+
   // =======================
   // Update Product
   // =======================
@@ -207,62 +225,6 @@ const UpdateProduct = () => {
                 ))}
               </Select>
 
-              {/* Upload Images */}
-              <div className="mb-3">
-                <label className="btn btn-outline-secondary col-md-12">
-                  {photos.length > 0
-                    ? `${photos.length} Image(s) Selected`
-                    : "Upload New Product Images"}
-
-                  <input
-                    type="file"
-                    name="photos"
-                    multiple
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => setPhotos(Array.from(e.target.files))}
-                  />
-                </label>
-              </div>
-
-              {/* Preview */}
-              <div className="mb-4">
-                {photos.length > 0 ? (
-                  <div className="d-flex flex-wrap gap-3">
-                    {photos.map((image, index) => (
-                      <img
-                        key={index}
-                        src={URL.createObjectURL(image)}
-                        alt={`preview-${index}`}
-                        width={150}
-                        height={150}
-                        style={{
-                          objectFit: "cover",
-                          borderRadius: 8,
-                          border: "1px solid #ddd",
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="d-flex flex-wrap gap-3">
-                    {existingPhotos.map((photo, index) => (
-                      <img
-                        key={index}
-                        src={photo.url}
-                        alt={`product-${index}`}
-                        width={150}
-                        height={150}
-                        style={{
-                          objectFit: "cover",
-                          borderRadius: 8,
-                          border: "1px solid #ddd",
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
 
               {/* Product Name */}
               <div className="mb-3">
@@ -341,6 +303,64 @@ const UpdateProduct = () => {
                 )}
               </div>
 
+
+                 {/* Upload Images */}
+              <div className="mb-3">
+                <label className="btn btn-outline-secondary col-md-12">
+                  {photos.length > 0
+                    ? `${photos.length} Image(s) Selected`
+                    : "Upload New Product Images"}
+
+                  <input
+                    type="file"
+                    name="photos"
+                    multiple
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => setPhotos(Array.from(e.target.files))}
+                  />
+                </label>
+              </div>
+
+              {/* Preview */}
+              <div className="mb-4">
+                {photos.length > 0 ? (
+                  <div className="d-flex flex-wrap gap-3">
+                    {photos.map((image, index) => (
+                      <img
+                        key={index}
+                        src={URL.createObjectURL(image)}
+                        alt={`preview-${index}`}
+                        width={150}
+                        height={150}
+                        style={{
+                          objectFit: "cover",
+                          borderRadius: 8,
+                          border: "1px solid #ddd",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="d-flex flex-wrap gap-3">
+                    {existingPhotos.map((photo, index) => (
+                      <img
+                        key={index}
+                        src={photo.url}
+                        alt={`product-${index}`}
+                        width={150}
+                        height={150}
+                        style={{
+                          objectFit: "cover",
+                          borderRadius: 8,
+                          border: "1px solid #ddd",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Colors */}
 
               <div className="mb-3">
@@ -350,6 +370,14 @@ const UpdateProduct = () => {
                   <ColorPicker
                     value={color}
                     onChange={(value) => setColor(value.toHexString())}
+                  />
+
+                  <Button
+                    type="default"
+                    icon={<FaEyeDropper />}
+                    aria-label="Pick color from screen"
+                    title="Pick color from screen"
+                    onClick={pickColor}
                   />
 
                   <span>Quantity</span>

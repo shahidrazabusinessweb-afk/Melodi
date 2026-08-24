@@ -559,13 +559,13 @@ const CartPage = () => {
                 </div>
               )}
               <div className="mt-2">
-                {!clientToken || !cart?.length ? (
+                {!cart?.length ? (
                   ""
                 ) : (
                   <>
-                    <h3 className="text-danger text-underline">Pay Now</h3>
+                    {/* <h3 className="text-danger text-underline">Pay Now</h3> */}
                     <img src="./payQR.png" alt="payment QR" className="my-2" />
-                    <DropIn
+                    {/* <DropIn
                       options={{
                         authorization: clientToken,
                         paypal: {
@@ -573,14 +573,14 @@ const CartPage = () => {
                         },
                       }}
                       onInstance={(instance) => setInstance(instance)}
-                    />
+                    /> */}
 
                     <button
-                      className="btn btn-primary mb-3"
-                      disabled={loading || !instance || !selectedAddress}
+                      className="btn btn-primary my-3"
+                      disabled={loading || !selectedAddress}
                       onClick={handlePayment}
                     >
-                      {loading ? "Processing ..." : "Make Payment"}
+                      {loading ? "Processing ..." : "PAY NOW"}
                     </button>
                   </>
                 )}
