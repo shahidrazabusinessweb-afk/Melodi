@@ -24,6 +24,8 @@ const ProductCard = ({
 
   const [selectedColor, setSelectedColor] = useState("");
 
+  const [selectedSize, setSelectedSize] = useState("");
+
   const [showColorsSection, setShowColorsSection] = useState(() => {
     const saved = localStorage.getItem(
       `productCardColorsVisible:${product?._id}`,
@@ -40,6 +42,7 @@ const ProductCard = ({
     }
 
     setActiveImage(0);
+    setSelectedSize("");
   }, [product]);
 
   useEffect(() => {
@@ -124,7 +127,12 @@ const ProductCard = ({
       return;
     }
 
-    onAddToCart(product, selectedColor);
+    if (product?.sizes?.length > 0 && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
+
+    onAddToCart(product, selectedColor, selectedSize);
   };
 
 
@@ -334,6 +342,24 @@ const ProductCard = ({
                   >
                     ›
                   </button>
+                </div>
+              </div>
+            )}
+
+            {product?.sizes?.length > 0 && (
+              <div className="mb-3">
+                <strong className="text-muted">Select Size</strong>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={`btn btn-sm ${selectedSize === size ? "btn-success" : "btn-light"}`}
+                      onClick={() => setSelectedSize(size)}
+                    >
+                      {size}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

@@ -21,20 +21,24 @@ const Wishlist = () => {
     toast.success(exists ? "Removed from wishlist" : "Added to wishlist");
   };
 
-  const addToCart = (product, selectedColor) => {
+  const addToCart = (product, selectedColor, selectedSize) => {
     const item = {
       ...product,
       quantity: 1,
       selectedColor: selectedColor || getColorValue(product.colors?.[0]),
+      selectedSize: selectedSize || "",
     };
     const existing = cart.find(
       (cartItem) =>
         cartItem._id === product._id &&
-        cartItem.selectedColor === selectedColor,
+        cartItem.selectedColor === item.selectedColor &&
+        cartItem.selectedSize === item.selectedSize,
     );
     const updatedCart = existing
       ? cart.map((cartItem) =>
-          cartItem._id === product._id
+          cartItem._id === product._id &&
+          cartItem.selectedColor === item.selectedColor &&
+          cartItem.selectedSize === item.selectedSize
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem,
         )

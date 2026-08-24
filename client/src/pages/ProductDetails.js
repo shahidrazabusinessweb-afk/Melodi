@@ -392,14 +392,14 @@ const ProductDetails = () => {
               <ProductCard
                   key={`${product._id}-${product.selectedColor}-${product.selectedSize}`}
                 product={product}
-                onAddToCart={(item, color) => {
+                onAddToCart={(item, color, size) => {
                   const updated = [
                     ...cart,
                     {
                       ...item,
                       quantity: 1,
                       selectedColor: color || getColorValue(item.colors?.[0]),
-                      selectedSize: item.sizes?.[0] || "",
+                      selectedSize: size || "",
                     },
                   ];
 
