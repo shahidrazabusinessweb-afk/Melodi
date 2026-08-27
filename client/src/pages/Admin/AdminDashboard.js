@@ -32,6 +32,8 @@ const AdminDashboard = () => {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
   // ================= SALES =================
 
@@ -138,12 +140,47 @@ const AdminDashboard = () => {
     }
   };
 
+  const getWhatsappNumber = async () => {
+    try {
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/v1/settings/whatsapp`,
+      );
+
+      if (data?.success) {
+        setWhatsappNumber(data.whatsappNumber || "");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const saveWhatsappNumber = async () => {
+    try {
+      setSavingWhatsapp(true);
+
+      const { data } = await axios.put(
+        `${process.env.REACT_APP_API}/api/v1/settings/whatsapp`,
+        { whatsappNumber },
+      );
+
+      if (data?.success) {
+        setWhatsappNumber(data.whatsappNumber);
+        message.success("WhatsApp number updated");
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || "Update failed");
+    } finally {
+      setSavingWhatsapp(false);
+    }
+  };
+
   // ================= EFFECT =================
 
   useEffect(() => {
     if (auth?.token) {
       getMonthlySales();
       getBanners();
+      getWhatsappNumber();
     }
   }, [auth?.token]);
 
@@ -186,6 +223,31 @@ const AdminDashboard = () => {
               >
                 Edit
               </button>
+            </div>
+          </Card>
+
+          <Card title="Chat Support" style={{ marginTop: 20 }}>
+            <div className="d-flex flex-column flex-md-row align-items-md-end gap-2 ">
+              <div className="flex-grow-1">
+                <label htmlFor="whatsapp-number" className="form-label">
+                  Admin WhatsApp Number
+                </label>
+                <input
+                  id="whatsapp-number"
+                  type="tel"
+                  className="form-control"
+                  placeholder="91XXXXXXXXXX"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                />
+              </div>
+              <Button
+                type="primary"
+                loading={savingWhatsapp}
+                onClick={saveWhatsappNumber}
+              >
+                Save Number
+              </Button>
             </div>
           </Card>
 

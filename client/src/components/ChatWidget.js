@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { WhatsAppOutlined, CloseOutlined } from "@ant-design/icons";
 import { useChat } from "../context/chat";
 
@@ -6,9 +7,26 @@ const ChatWidget = () => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [hasManualEdit, setHasManualEdit] = useState(false);
+  const [adminWhatsApp, setAdminWhatsApp] = useState("");
   const { chatProduct, selectedColor } = useChat();
 
-  const adminWhatsApp = "918291895854";
+  useEffect(() => {
+    const getWhatsappNumber = async () => {
+      try {
+        const { data } = await axios.get(
+          `${process.env.REACT_APP_API}/api/v1/settings/whatsapp`,
+        );
+
+        if (data?.success) {
+          setAdminWhatsApp(data.whatsappNumber || "");
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    getWhatsappNumber();
+  }, []);
 
   const generateMessage = useMemo(() => {
     if (chatProduct) {
@@ -67,6 +85,8 @@ const ChatWidget = () => {
 
   // 📍 Include product share URL in WhatsApp message
   const openWhatsApp = (customMsg) => {
+    if (!adminWhatsApp) return;
+
     const finalMessage = customMsg || message;
 
     const shareUrl = chatProduct

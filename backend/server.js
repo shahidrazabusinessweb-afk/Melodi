@@ -16,6 +16,7 @@ import categoryRoute from "./routes/categoryRoute.js";
 import productRoute from "./routes/productRoute.js";
 import bannerRoute from "./routes/bannerRoute.js";
 import paymentConfigRoutes from "./routes/paymentConfigRoutes.js";
+import siteSettingRoutes from "./routes/siteSettingRoutes.js";
 import couponRoute from "./routes/couponRoute.js";
 import ProductModel from "./models/ProductModel.js";
 
@@ -42,6 +43,7 @@ app.use("/api/v1/category", categoryRoute);
 app.use("/api/v1/product", productRoute);
 app.use("/api/v1/banner", bannerRoute);
 app.use("/api/v1/admin", paymentConfigRoutes);
+app.use("/api/v1/settings", siteSettingRoutes);
 app.use("/api/v1/coupon", couponRoute);
 
 // Static uploads directory
