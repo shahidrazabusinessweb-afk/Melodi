@@ -227,11 +227,11 @@ const AdminDashboard = () => {
           </Card>
 
           <Card title="Chat Support" style={{ marginTop: 20 }}>
-            <div className="d-flex flex-column flex-md-row align-items-md-end gap-2 ">
-              <div className="flex-grow-1">
                 <label htmlFor="whatsapp-number" className="form-label">
                   Admin WhatsApp Number
                 </label>
+            <div className="d-flex flex-column flex-md-row align-items-md-center gap-2 ">
+              <div className="flex-grow-2">
                 <input
                   id="whatsapp-number"
                   type="tel"
