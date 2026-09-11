@@ -6,7 +6,7 @@ import UserModel from "../models/UserModel.js";
 import fs from "fs";
 import slugify from "slugify";
 import cloudinary from "../config/cloudinary.js";
-
+import axios from "axios";
 import gateway from "../config/braintree.js";
 import getGateway from "../utils/getGateway.js";
 
@@ -26,6 +26,9 @@ export const createProductController = async (req, res) => {
     } = req.body;
 
     const photos = req.files;
+    const numericPrice = Number(price);
+    const numericDiscount = Number(discount ?? 0);
+    const numericShippingCost = Number(shippingCost ?? 0);
 
     // Validation
     if (!name)
@@ -40,7 +43,7 @@ export const createProductController = async (req, res) => {
         message: "Description is required",
       });
 
-    if (!price)
+    if (!price || !Number.isFinite(numericPrice) || numericPrice <= 0)
       return res.status(400).send({
         success: false,
         message: "Price is required",
@@ -62,11 +65,11 @@ export const createProductController = async (req, res) => {
       name,
       slug: slugify(name),
       description,
-      price,
-      discount,
+      price: numericPrice,
+      discount: Number.isFinite(numericDiscount) ? numericDiscount : 0,
       category,
       shipping: shipping === true || shipping === "true",
-      shippingCost: shippingCost || 0,
+      shippingCost: Number.isFinite(numericShippingCost) ? numericShippingCost : 0,
       colors: colors
         ? JSON.parse(colors).map(({ color, quantity }) => ({
             color,
@@ -95,11 +98,48 @@ export const createProductController = async (req, res) => {
 
     await product.save();
 
-    res.status(201).send({
-      success: true,
-      message: "Product Created Successfully",
-      product,
-    });
+// Send product to n8n for Instagram poster generation
+try {
+  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+
+  if (n8nWebhookUrl) {
+    await axios.post(
+      n8nWebhookUrl,
+      {
+        productId: product._id.toString(),
+        productName: product.name,
+        description: product.description,
+        price: product.price,
+        discount: product.discount,
+        imageUrl: product.photos?.[0]?.url || null,
+        images: product.photos || [],
+        category: product.category,
+        colors: product.colors,
+        sizes: product.sizes,
+        dimensions: product.dimensions,
+      },
+      {
+        timeout: 30000,
+      }
+    );
+
+    console.log("✅ Product successfully sent to n8n");
+  } else {
+    console.log("⚠️ N8N_WEBHOOK_URL is not configured");
+  }
+} catch (n8nError) {
+  // Don't fail product creation if n8n is temporarily unavailable
+  console.error(
+    "⚠️ Failed to send product to n8n:",
+    n8nError.message
+  );
+}
+
+res.status(201).send({
+  success: true,
+  message: "Product Created Successfully",
+  product,
+});
   } catch (error) {
     console.log(error);
 
@@ -141,11 +181,15 @@ export const updateProductController = async (req, res) => {
     product.name = name || product.name;
     product.slug = name ? slugify(name) : product.slug;
     product.description = description || product.description;
-    product.price = price || product.price;
+    product.price = Number(price) || product.price;
     product.category = category || product.category;
-    product.discount = discount || product.discount;
+    product.discount =
+      discount !== undefined && discount !== "" ? Number(discount) || product.discount : product.discount;
     product.shipping = shipping !== undefined ? shipping : product.shipping;
-    product.shippingCost = shippingCost || product.shippingCost;
+    product.shippingCost =
+      shippingCost !== undefined && shippingCost !== ""
+        ? Number(shippingCost) || product.shippingCost
+        : product.shippingCost;
 
     if (colors) {
       product.colors = JSON.parse(colors).map(({ color, quantity }) => ({
