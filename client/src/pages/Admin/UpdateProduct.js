@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import AdminMenu from "../../components/Layout/AdminMenu";
-import { Button, Card, Col, ColorPicker, Row, Select, Tag } from "antd";
+import { Button, Card, Col, ColorPicker, Row, Select, Switch, Tag } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { FaEyeDropper } from "react-icons/fa6";
+import { motion } from "framer-motion";
 
 const { Option } = Select;
 
@@ -33,6 +34,9 @@ const UpdateProduct = () => {
 
   const [shipping, setShipping] = useState(false);
   const [shippingCost, setShippingCost] = useState("");
+  const [sendToN8n, setSendToN8n] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("template_1");
+  const [posterTemplates, setPosterTemplates] = useState([]);
 
   // Newly selected images
   const [photos, setPhotos] = useState([]);
@@ -61,6 +65,22 @@ const UpdateProduct = () => {
     } catch (error) {
       console.log(error);
       toast.error("Unable to load categories");
+    }
+  };
+
+  const getPosterTemplates = async () => {
+    try {
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/v1/poster-template/templates`,
+      );
+      if (data?.success) {
+        setPosterTemplates(data.templates);
+        if (data.templates.length > 0) {
+          setSelectedTemplate(data.templates[0]._id);
+        }
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -109,6 +129,7 @@ const UpdateProduct = () => {
 
   useEffect(() => {
     getAllCategory();
+    getPosterTemplates();
     getSingleProduct();
     // eslint-disable-next-line
   }, []);
@@ -169,6 +190,8 @@ const UpdateProduct = () => {
       productData.append("category", category);
       productData.append("shipping", shipping);
       productData.append("shippingCost", shippingCost);
+      productData.append("sendToN8n", sendToN8n);
+      productData.append("selectedTemplate", selectedTemplate);
       productData.append("colors", JSON.stringify(colors));
       productData.append("sizes", JSON.stringify(sizeType === "apparel" ? sizes : []));
       productData.append("dimensions", JSON.stringify(sizeType === "dimensions" ? dimensions : {}));
@@ -298,6 +321,7 @@ const UpdateProduct = () => {
               <div className="mb-3">
                 <input
                   type="number"
+                  min="0"
                   className="form-control"
                   placeholder="Price"
                   value={price}
@@ -309,6 +333,7 @@ const UpdateProduct = () => {
               <div className="mb-3">
                 <input
                   type="number"
+                  min="0"
                   className="form-control"
                   placeholder="Discount (%)"
                   value={discount}
@@ -458,6 +483,67 @@ const UpdateProduct = () => {
                   ))}
                 </div>
               </div>
+
+                 <div className="mb-3 mt-5 d-flex align-items-center gap-2">
+                <Switch checked={sendToN8n} onChange={setSendToN8n} />
+                <span>Generate Poster for this Product</span>
+              </div>
+
+                <motion.div
+                  animate={{
+                    height: sendToN8n ? "auto" : 0,
+                    opacity: sendToN8n ? 1 : 0,
+                    y: sendToN8n ? 0 : -10,
+                  }}
+                  aria-hidden={!sendToN8n}
+                  inert={!sendToN8n ? "" : undefined}
+                  initial={false}
+                  style={{ overflow: "hidden", pointerEvents: sendToN8n ? "auto" : "none" }}
+                  transition={{
+                    height: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+                    opacity: { duration: 0.4, ease: "easeOut" },
+                    y: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+                  }}
+                >
+                  <div className="mb-3 mt-4">
+                    <label className="form-label">Select Poster Template</label>
+                    {posterTemplates.length > 0 ? (
+                      <>
+                        <Row gutter={[12, 12]}>
+                          {posterTemplates.map((template) => (
+                            <Col xs={12} sm={8} md={6} key={template._id}>
+                              <button
+                                type="button"
+                                className={`poster-template-card w-100 p-2 bg-white ${selectedTemplate === template._id ? "is-selected" : ""}`}
+                                aria-pressed={selectedTemplate === template._id}
+                                onClick={() => setSelectedTemplate(template._id)}
+                              >
+                                <img src={template.image} alt={template.name} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 4 }} />
+                                <span className="d-block mt-2 text-truncate">{template.name}</span>
+                              </button>
+                            </Col>
+                          ))}
+                        </Row>
+                        {/* {posterTemplates.find((template) => template._id === selectedTemplate) && (
+                          <div className="mt-3">
+                            <div className="small text-muted mb-2">Selected template preview</div>
+                            <img
+                              src={posterTemplates.find((template) => template._id === selectedTemplate).image}
+                              alt="Selected poster template"
+                              style={{ width: "100%", maxHeight: 360, objectFit: "contain", background: "#fff", borderRadius: 8 }}
+                            />
+                          </div>
+                        )} */}
+                      </>
+                    ) : (
+                      <Select value={selectedTemplate} onChange={setSelectedTemplate} className="w-100" size="large">
+                        <Option value="template_1">Template 1 - Luxury Burgundy (Arch Frame)</Option>
+                        <Option value="template_2">Template 2 - Modern Minimal Gold</Option>
+                        <Option value="template_3">Template 3 - Classic Dark Elegance</Option>
+                      </Select>
+                    )}
+                    </div>
+                </motion.div>
 
               {/* Buttons */}
 

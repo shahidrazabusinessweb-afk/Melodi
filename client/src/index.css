@@ -1591,6 +1591,48 @@ a:hover {
   }
 }
 
+.poster-template-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transform: translateY(0);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.poster-template-card:hover {
+  border-color: #60aeea;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(25, 49, 82, 0.12);
+}
+
+.poster-template-card.is-selected {
+  border-color: #22abd0;
+  box-shadow:
+    0 0 0 3px rgba(98, 69, 184, 0.2),
+    0 10px 22px rgba(25, 54, 82, 0.16);
+  transform: translateY(-2px);
+}
+
+.poster-template-card.is-selected::after {
+  background: #028a96;
+  border-radius: 50%;
+  color: #fff;
+  content: "✓";
+  font-size: 12px;
+  font-weight: 700;
+  height: 24px;
+  line-height: 24px;
+  position: absolute;
+  right: 8px;
+  text-align: center;
+  top: 8px;
+  width: 24px;
+}
+
 .dashboard-content {
   animation: pageTransition 0.3s ease;
 }

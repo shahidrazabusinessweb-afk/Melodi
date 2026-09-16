@@ -8,7 +8,6 @@ import compression from "compression";
 import cors from "cors";
 import mongoose from "mongoose";
 import path from "path";
-import fs from "fs"; // Required to parse index.html template
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoute.js";
@@ -18,6 +17,7 @@ import bannerRoute from "./routes/bannerRoute.js";
 import paymentConfigRoutes from "./routes/paymentConfigRoutes.js";
 import siteSettingRoutes from "./routes/siteSettingRoutes.js";
 import couponRoute from "./routes/couponRoute.js";
+import posterTemplateRoute from "./routes/posterTemplateRoute.js";
 import ProductModel from "./models/ProductModel.js";
 
 const app = express();
@@ -45,36 +45,10 @@ app.use("/api/v1/banner", bannerRoute);
 app.use("/api/v1/admin", paymentConfigRoutes);
 app.use("/api/v1/settings", siteSettingRoutes);
 app.use("/api/v1/coupon", couponRoute);
+app.use("/api/v1/poster-template", posterTemplateRoute);
 
 // Static uploads directory
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
-// Helper mapping for dynamic location profiles
-const getLocationMetadata = (locationName, siteUrl) => {
-  const locations = {
-    riyadh: {
-      title: "Sweetie Ayman - Riyadh Boutique",
-      description:
-        "Modern luxury bags curated specifically for Riyadh. Fast regional shipping.",
-      logo: `${siteUrl}/uploads/logos/riyadh-logo.png`,
-    },
-    dubai: {
-      title: "Sweetie Ayman - Dubai Handbags",
-      description:
-        "Chic luxury bags curated for Dubai. Seamless checkout and returns.",
-      logo: `${siteUrl}/uploads/logos/dubai-logo.png`,
-    },
-  };
-
-  return (
-    locations[locationName.toLowerCase()] || {
-      title: "Sweetie Ayman",
-      description:
-        "Modern bags, curated for everyday luxury. Fast delivery and easy returns.",
-      logo: `${siteUrl}/ShopLogo1.png`,
-    }
-  );
-};
 
 const renderProductMetaHtml = (product, siteUrl, routeType = "product") => {
   const productImageUrl =
@@ -123,38 +97,6 @@ const sendNotFoundHtml = (res) => {
   </body>
 </html>`);
 };
-
-// --- DYNAMIC LOCATION ROUTE ---
-app.get("/shop/:location", (req, res) => {
-  try {
-    const locationName = req.params.location;
-    const siteUrl =
-      process.env.CLIENT_URL ||
-      process.env.APP_URL ||
-      "https://sweetieayman.onrender.com";
-    const meta = getLocationMetadata(locationName, siteUrl);
-
-    // For Next.js: look in ../client/public/index.html or fallback to ../client/.next
-    const templatePath = path.join(process.cwd(), "..", "client", "public", "index.html");
-
-    fs.readFile(templatePath, "utf8", (err, htmlData) => {
-      if (err) {
-        console.error("Error reading index.html layout:", err);
-        return res.status(500).send("Internal Template Error");
-      }
-
-      const customizedHtml = htmlData
-        .replace(/__DYNAMIC_TITLE__/g, meta.title)
-        .replace(/__DYNAMIC_DESC__/g, meta.description)
-        .replace(/__DYNAMIC_LOGO__/g, meta.logo);
-
-      res.status(200).type("html").send(customizedHtml);
-    });
-  } catch (error) {
-    console.error("Location route failure", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
 
 // Product Routing
 app.get("/product/:slug", async (req, res) => {

@@ -9,6 +9,44 @@ import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import gateway from "../config/braintree.js";
 import getGateway from "../utils/getGateway.js";
+import PosterTemplate from "../models/PosterTemplateModel.js";
+
+const shouldSendToN8n = (value) => value === true || value === "true";
+
+const sendProductToN8n = async (product, selectedTemplate = "template_1") => {
+  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+
+  if (!n8nWebhookUrl) {
+    console.log("N8N_WEBHOOK_URL is not configured");
+    return;
+  }
+
+  const template = selectedTemplate.match?.(/^[a-f\d]{24}$/i)
+    ? await PosterTemplate.findById(selectedTemplate).lean()
+    : null;
+
+  await axios.post(
+    n8nWebhookUrl,
+    {
+      productId: product._id.toString(),
+      productName: product.name,
+      description: product.description,
+      price: product.price,
+      discount: product.discount,
+      imageUrl: product.photos?.[0]?.url || null,
+      images: product.photos || [],
+      category: product.category,
+      colors: product.colors,
+      sizes: product.sizes,
+      dimensions: product.dimensions,
+      selectedTemplate: selectedTemplate || "template_1",
+      selectedTemplateImage: template?.image || null,
+    },
+    { timeout: 30000 },
+  );
+
+  console.log("Product successfully sent to n8n with template:", selectedTemplate);
+};
 
 export const createProductController = async (req, res) => {
   try {
@@ -23,6 +61,8 @@ export const createProductController = async (req, res) => {
       colors,
       sizes,
       dimensions,
+      sendToN8n,
+      selectedTemplate,
     } = req.body;
 
     const photos = req.files;
@@ -98,48 +138,19 @@ export const createProductController = async (req, res) => {
 
     await product.save();
 
-// Send product to n8n for Instagram poster generation
-try {
-  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-
-  if (n8nWebhookUrl) {
-    await axios.post(
-      n8nWebhookUrl,
-      {
-        productId: product._id.toString(),
-        productName: product.name,
-        description: product.description,
-        price: product.price,
-        discount: product.discount,
-        imageUrl: product.photos?.[0]?.url || null,
-        images: product.photos || [],
-        category: product.category,
-        colors: product.colors,
-        sizes: product.sizes,
-        dimensions: product.dimensions,
-      },
-      {
-        timeout: 30000,
+    if (shouldSendToN8n(sendToN8n)) {
+      try {
+        await sendProductToN8n(product, selectedTemplate);
+      } catch (n8nError) {
+        console.error("Failed to send product to n8n:", n8nError.message);
       }
-    );
+    }
 
-    console.log("✅ Product successfully sent to n8n");
-  } else {
-    console.log("⚠️ N8N_WEBHOOK_URL is not configured");
-  }
-} catch (n8nError) {
-  // Don't fail product creation if n8n is temporarily unavailable
-  console.error(
-    "⚠️ Failed to send product to n8n:",
-    n8nError.message
-  );
-}
-
-res.status(201).send({
-  success: true,
-  message: "Product Created Successfully",
-  product,
-});
+    res.status(201).send({
+      success: true,
+      message: "Product Created Successfully",
+      product,
+    });
   } catch (error) {
     console.log(error);
 
@@ -164,6 +175,8 @@ export const updateProductController = async (req, res) => {
       colors,
       sizes,
       dimensions,
+      sendToN8n,
+      selectedTemplate,
     } = req.body;
 
     const files = req.files;
@@ -229,6 +242,14 @@ export const updateProductController = async (req, res) => {
     }
     await product.save();
 
+    if (shouldSendToN8n(sendToN8n)) {
+      try {
+        await sendProductToN8n(product, selectedTemplate);
+      } catch (n8nError) {
+        console.error("Failed to send product to n8n:", n8nError.message);
+      }
+    }
+
     res.status(200).send({
       success: true,
       message: "Product Updated Successfully",
@@ -257,7 +278,6 @@ export const deleteProductController = async (req, res) => {
     }
 
     // Delete images from Cloudinary
-
     if (product.photos.length > 0) {
       for (const image of product.photos) {
         await cloudinary.uploader.destroy(image.public_id);
@@ -268,7 +288,6 @@ export const deleteProductController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-
       message: "Product Deleted Successfully",
     });
   } catch (error) {
@@ -276,9 +295,7 @@ export const deleteProductController = async (req, res) => {
 
     res.status(500).send({
       success: false,
-
       message: "Error deleting product",
-
       error: error.message,
     });
   }
@@ -336,17 +353,13 @@ export const getSingleProductController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-
       message: "Fetched single Product successfully",
-
       product,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-
       message: "Error getting product",
-
       error,
     });
   }
@@ -361,24 +374,19 @@ export const getProductByIdController = async (req, res) => {
     if (!product) {
       return res.status(404).send({
         success: false,
-
         message: "Product not found",
       });
     }
 
     res.status(200).send({
       success: true,
-
       message: "Product fetched successfully",
-
       product,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-
       message: "Error getting product",
-
       error,
     });
   }
@@ -387,11 +395,8 @@ export const getProductByIdController = async (req, res) => {
 export const productFiltersController = async (req, res) => {
   try {
     const { checked, radio } = req.body;
-
     const page = Number(req.body.page) || 1;
-
     const limit = Number(req.body.limit) || 12;
-
     const skip = (page - 1) * limit;
 
     let args = {};
@@ -419,21 +424,15 @@ export const productFiltersController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-
       products,
-
       total,
-
       page,
-
       pages: Math.ceil(total / limit),
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-
       message: "Error Filtering data",
-
       error,
     });
   }
@@ -442,11 +441,8 @@ export const productFiltersController = async (req, res) => {
 export const searchProductController = async (req, res) => {
   try {
     const { keyword } = req.params;
-
     const page = Number(req.query.page) || 1;
-
     const limit = Number(req.query.limit) || 12;
-
     const skip = (page - 1) * limit;
 
     const query = {
@@ -457,7 +453,6 @@ export const searchProductController = async (req, res) => {
             $options: "i",
           },
         },
-
         {
           description: {
             $regex: keyword,
@@ -476,21 +471,15 @@ export const searchProductController = async (req, res) => {
 
     res.json({
       success: true,
-
       total,
-
       page,
-
       pages: Math.ceil(total / limit),
-
       result,
     });
   } catch (error) {
     res.status(400).send({
       success: false,
-
       message: "Error searching Product",
-
       error,
     });
   }
@@ -502,7 +491,6 @@ export const relatedProductController = async (req, res) => {
 
     const products = await ProductModel.find({
       category: cid,
-
       _id: {
         $ne: pid,
       },
@@ -513,15 +501,12 @@ export const relatedProductController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-
       products,
     });
   } catch (error) {
     res.status(400).send({
       success: false,
-
       message: "Error loading similar products",
-
       error,
     });
   }
@@ -530,9 +515,7 @@ export const relatedProductController = async (req, res) => {
 export const productCategoryController = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
-
     const limit = Number(req.query.limit) || 12;
-
     const skip = (page - 1) * limit;
 
     const category = await CategoryModel.findOne({
@@ -542,7 +525,6 @@ export const productCategoryController = async (req, res) => {
     if (!category) {
       return res.status(404).send({
         success: false,
-
         message: "Category not found",
       });
     }
@@ -561,23 +543,16 @@ export const productCategoryController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-
       category,
-
       products,
-
       total,
-
       page,
-
       pages: Math.ceil(total / limit),
     });
   } catch (error) {
     res.status(400).send({
       success: false,
-
       message: "Error getting Product category",
-
       error,
     });
   }

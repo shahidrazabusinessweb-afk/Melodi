@@ -34,6 +34,11 @@ const AdminDashboard = () => {
   const [fileList, setFileList] = useState([]);
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+  const [templateFile, setTemplateFile] = useState(null);
+  const [templateFileList, setTemplateFileList] = useState([]);
+  const [templateName, setTemplateName] = useState("");
+  const [posterTemplates, setPosterTemplates] = useState([]);
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   // ================= SALES =================
 
@@ -140,6 +145,66 @@ const AdminDashboard = () => {
     }
   };
 
+  const getPosterTemplates = async () => {
+    try {
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/v1/poster-template/templates`,
+      );
+      if (data?.success) setPosterTemplates(data.templates);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const uploadPosterTemplate = async () => {
+    if (!templateName.trim() || !templateFile) {
+      message.error("Template name and image are required");
+      return;
+    }
+
+    try {
+      setTemplateLoading(true);
+      const formData = new FormData();
+      formData.append("name", templateName.trim());
+      formData.append("image", templateFile);
+
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_API}/api/v1/poster-template/upload-template`,
+        formData,
+      );
+
+      if (data?.success) {
+        message.success("Poster template uploaded successfully");
+        setTemplateName("");
+        setTemplateFile(null);
+        setTemplateFileList([]);
+        getPosterTemplates();
+      } else {
+        message.error(data?.message || "Upload failed");
+      }
+    } catch (error) {
+      console.log(error);
+      message.error(error.response?.data?.message || "Upload failed");
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  const deletePosterTemplate = async (id) => {
+    try {
+      const { data } = await axios.delete(
+        `${process.env.REACT_APP_API}/api/v1/poster-template/delete-template/${id}`,
+      );
+      if (data?.success) {
+        message.success("Poster template deleted");
+        getPosterTemplates();
+      }
+    } catch (error) {
+      console.log(error);
+      message.error("Delete failed");
+    }
+  };
+
   const getWhatsappNumber = async () => {
     try {
       const { data } = await axios.get(
@@ -180,6 +245,7 @@ const AdminDashboard = () => {
     if (auth?.token) {
       getMonthlySales();
       getBanners();
+      getPosterTemplates();
       getWhatsappNumber();
     }
   }, [auth?.token]);
@@ -337,6 +403,71 @@ const AdminDashboard = () => {
                         Delete
                       </Button>
                     </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+
+          <Card title="Poster Template Management" style={{ marginTop: 20 }}>
+            <div className="mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Template Name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+
+            <Upload
+              accept="image/*"
+              fileList={templateFileList}
+              beforeUpload={(file) => {
+                setTemplateFile(file);
+                setTemplateFileList([file]);
+                return false;
+              }}
+              onRemove={() => {
+                setTemplateFile(null);
+                setTemplateFileList([]);
+              }}
+            >
+              <Button icon={<UploadOutlined />}>Select Template Image</Button>
+            </Upload>
+
+            {templateFile && (
+              <div className="mt-3">
+                <img
+                  src={URL.createObjectURL(templateFile)}
+                  alt="Poster template preview"
+                  style={{ width: "300px", maxWidth: "100%", borderRadius: "10px" }}
+                />
+              </div>
+            )}
+
+            <Button
+              type="primary"
+              loading={templateLoading}
+              className="mt-3"
+              onClick={uploadPosterTemplate}
+            >
+              Upload Poster Template
+            </Button>
+
+            <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
+              {posterTemplates.map((template) => (
+                <Col xs={24} sm={12} lg={8} key={template._id}>
+                  <Card>
+                    <img
+                      src={template.image}
+                      alt={template.name}
+                      style={{ width: "100%", height: "180px", objectFit: "cover", borderRadius: "8px" }}
+                    />
+                    <h6 style={{ marginTop: 10 }}>{template.name}</h6>
+                    <Button danger onClick={() => deletePosterTemplate(template._id)}>
+                      Delete
+                    </Button>
                   </Card>
                 </Col>
               ))}
