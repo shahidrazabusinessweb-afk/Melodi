@@ -11,6 +11,12 @@ const orderSchema = new mongoose.Schema(
 
     payment: [],
 
+    paymentStatus: {
+      type: String,
+      default: "Pending",
+      enum: ["Pending", "Processing", "Success", "Failed", "Canceled"],
+    },
+
     buyer: {
       type: mongoose.ObjectId,
       ref: "users",
@@ -24,7 +30,14 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "Not Process",
-      enum: ["Not Process", "Processing", "Shipped", "Delivered", "Canceled"],
+      enum: [
+        "Pending Payment",
+        "Not Process",
+        "Processing",
+        "Shipped",
+        "Delivered",
+        "Canceled",
+      ],
     },
   },
   { timestamps: true },

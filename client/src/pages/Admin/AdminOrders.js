@@ -15,13 +15,13 @@ import {
   Collapse,
   Row,
   Col,
+  message,
+  Grid,
 } from "antd";
 
-import { Grid } from "antd";
 import Loader from "../../components/UI/Loader";
 
 const { useBreakpoint } = Grid;
-
 const { Option } = Select;
 const { Text } = Typography;
 
@@ -35,6 +35,7 @@ const AdminOrders = () => {
   const [auth] = useAuth();
 
   const statusList = [
+    "Pending Payment",
     "Not Process",
     "Processing",
     "Shipped",
@@ -42,17 +43,25 @@ const AdminOrders = () => {
     "Canceled",
   ];
 
+  const paymentStatusList = [
+    "Pending",
+    "Processing",
+    "Success",
+    "Failed",
+    "Canceled",
+  ];
+
   const getOrders = async () => {
     try {
       setLoading(true);
       const { data } = await axios.get(
-        `${process.env.REACT_APP_API}/api/v1/auth/all-orders?page=1&limit=20`,
+        `${process.env.REACT_APP_API}/api/v1/auth/all-orders?page=1&limit=20`
       );
 
       setOrders(data?.orders || []);
-      setLoading(false);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching orders:", error);
+      message.error("Failed to fetch orders");
     } finally {
       setLoading(false);
     }
@@ -64,18 +73,53 @@ const AdminOrders = () => {
     }
   }, [auth?.token]);
 
-  const handleChange = async (orderId, value) => {
+  const handleChange = async (orderId, status) => {
     try {
-      await axios.put(
+      const { data } = await axios.put(
         `${process.env.REACT_APP_API}/api/v1/auth/order-status/${orderId}`,
-        { status: value },
+        { status }
       );
 
-      getOrders();
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order._id === orderId ? { ...order, status: data?.status || status } : order
+        )
+      );
+      message.success("Order status updated");
     } catch (error) {
-      console.log(error);
+      console.error("Error updating order status:", error);
+      message.error("Failed to update order status");
     }
   };
+
+  const handlePaymentChange = async (orderId, paymentStatus) => {
+    try {
+      const { data } = await axios.put(
+        `${process.env.REACT_APP_API}/api/v1/auth/payment-status/${orderId}`,
+        { paymentStatus }
+      );
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order._id === orderId
+            ? { ...order, paymentStatus: data?.paymentStatus || paymentStatus }
+            : order
+        )
+      );
+      message.success("Payment status updated");
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      message.error("Failed to update payment status");
+    }
+  };
+
+  const getPaymentStatus = (order) =>
+    order?.paymentStatus ||
+    (order?.payment?.[0]
+      ? order.payment[0].success
+        ? "Success"
+        : "Failed"
+      : "Pending");
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -87,9 +131,18 @@ const AdminOrders = () => {
         return "orange";
       case "Canceled":
         return "red";
+      case "Pending Payment":
+        return "gold";
       default:
         return "default";
     }
+  };
+
+  const getProductImageSrc = (product) => {
+    if (product.photos && product.photos.length > 0) {
+      return product.photos[0].url || product.photos[0];
+    }
+    return `${process.env.REACT_APP_API}/api/v1/product/product-photo/${product._id}`;
   };
 
   const columns = [
@@ -101,36 +154,45 @@ const AdminOrders = () => {
     {
       title: "Order ID",
       dataIndex: "_id",
-      render: (id) => <Text copyable>{id.slice(-8)}</Text>,
+      render: (id) => <Text copyable>{id ? id.slice(-8) : ""}</Text>,
     },
     {
       title: "Buyer",
-      render: (_, record) => record?.buyer?.name,
+      render: (_, record) => record?.buyer?.name || "N/A",
     },
     {
       title: "Date",
       render: (_, record) =>
-        moment(record?.createdAt).format("DD MMM YYYY HH:mm"),
+        record?.createdAt
+          ? moment(record.createdAt).format("DD MMM YYYY HH:mm")
+          : "N/A",
     },
     {
       title: "Payment",
-      render: (_, record) =>
-        record?.payment[0]?.success ? (
-          <Tag color="green">Success</Tag>
-        ) : (
-          <Tag color="red">Failed</Tag>
-        ),
+      render: (_, record) => (
+        <Select
+          value={getPaymentStatus(record)}
+          style={{ width: 115 }}
+          onChange={(value) => handlePaymentChange(record._id, value)}
+        >
+          {paymentStatusList.map((paymentStatus) => (
+            <Option key={paymentStatus} value={paymentStatus}>
+              {paymentStatus}
+            </Option>
+          ))}
+        </Select>
+      ),
     },
     {
       title: "Products",
-      render: (_, record) => record?.products?.length,
+      render: (_, record) => record?.products?.length || 0,
     },
     {
       title: "Status",
       render: (_, record) => (
         <Select
           value={record?.status}
-          style={{ width: 105 }}
+          style={{ width: 120 }}
           onChange={(value) => handleChange(record._id, value)}
         >
           {statusList.map((status) => (
@@ -144,7 +206,7 @@ const AdminOrders = () => {
     {
       title: "Current Status",
       render: (_, record) => (
-        <Tag color={getStatusColor(record?.status)}>{record?.status}</Tag>
+        <Tag color={getStatusColor(record?.status)}>{record?.status || "N/A"}</Tag>
       ),
     },
   ];
@@ -154,13 +216,11 @@ const AdminOrders = () => {
       {record?.products?.map((product) => (
         <Card key={product._id} size="small">
           <Space align="start">
-            <Avatar shape="square" size={80} src={product.photos?.[0]?.url} />
-
+            <Avatar shape="square" size={80} src={getProductImageSrc(product)} />
             <div>
               <h5>{product.name}</h5>
               <p>{product.description?.substring(0, 100)}...</p>
-
-              <Tag color="gold"> &#8377; {product.price}</Tag>
+              <Tag color="gold">&#8377; {product.price}</Tag>
             </div>
           </Space>
         </Card>
@@ -199,26 +259,35 @@ const AdminOrders = () => {
                       >
                         <Space orientation="vertical" style={{ width: "100%" }}>
                           <div>
-                            <strong>Buyer:</strong> {order?.buyer?.name}
+                            <strong>Buyer:</strong> {order?.buyer?.name || "N/A"}
                           </div>
 
                           <div>
                             <strong>Date:</strong>{" "}
-                            {moment(order?.createdAt).fromNow()}
+                            {order?.createdAt
+                              ? moment(order.createdAt).fromNow()
+                              : "N/A"}
                           </div>
 
                           <div>
-                            <strong>Payment:</strong>{" "}
-                            {order?.payment[0]?.success ? (
-                              <Tag color="green">Success</Tag>
-                            ) : (
-                              <Tag color="red">Failed</Tag>
-                            )}
+                            <strong>Payment Status:</strong>{" "}
+                            <Select
+                              value={getPaymentStatus(order)}
+                              style={{ width: "100%", marginTop: 8 }}
+                              onChange={(value) =>
+                                handlePaymentChange(order._id, value)
+                              }
+                            >
+                              {paymentStatusList.map((paymentStatus) => (
+                                <Option key={paymentStatus} value={paymentStatus}>
+                                  {paymentStatus}
+                                </Option>
+                              ))}
+                            </Select>
                           </div>
 
                           <div>
-                            <strong>Status:</strong>
-                            <br />
+                            <strong>Order Status:</strong>
                             <Select
                               value={order?.status}
                               style={{ width: "100%", marginTop: 8 }}
@@ -238,7 +307,7 @@ const AdminOrders = () => {
                             items={[
                               {
                                 key: "1",
-                                label: `Products (${order?.products?.length})`,
+                                label: `Products (${order?.products?.length || 0})`,
                                 children: (
                                   <Space
                                     orientation="vertical"
@@ -250,19 +319,16 @@ const AdminOrders = () => {
                                           <Avatar
                                             shape="square"
                                             size={70}
-                                            src={`${process.env.REACT_APP_API}/api/v1/product/product-photo/${product._id}`}
+                                            src={getProductImageSrc(product)}
                                           />
-
                                           <div>
                                             <strong>{product.name}</strong>
-
                                             <div>
                                               {product.description?.substring(
                                                 0,
-                                                50,
+                                                50
                                               )}
                                             </div>
-
                                             <Tag color="gold">
                                               &#8377; {product.price}
                                             </Tag>
@@ -290,7 +356,6 @@ const AdminOrders = () => {
                     pagination={{
                       pageSize: 10,
                     }}
-                    // scroll={{ x: 1000 }}
                   />
                 )}
               </>

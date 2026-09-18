@@ -10,6 +10,7 @@ import {
   orderStatusController,
   getMonthlySalesController,
   getAllUsersController,
+  paymentStatusController,
 } from "../controllers/authController.js";
 import { isAdmin, requireSignIN } from "../middlewares/authMiddleware.js";
 
@@ -35,6 +36,12 @@ router.put(
   requireSignIN,
   isAdmin,
   orderStatusController,
+);
+router.put(
+  "/payment-status/:orderId",
+  requireSignIN,
+  isAdmin,
+  paymentStatusController,
 );
 
 router.get("/monthly-sales", requireSignIN, isAdmin, getMonthlySalesController);

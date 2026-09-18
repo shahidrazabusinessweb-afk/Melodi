@@ -1,5 +1,4 @@
 import axios from "axios";
-import DropIn from "braintree-web-drop-in-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -13,9 +12,7 @@ import { getColorQuantity, getColorValue } from "../lib/productColors";
 const CartPage = () => {
   const { cart, setCart } = useCart();
   const [auth, setAuth] = useAuth();
-  const [clientToken, setClientToken] = useState("");
-  const [instance, setInstance] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState(
@@ -204,6 +201,42 @@ const CartPage = () => {
     toast.success("Coupon removed");
   };
 
+  const handleBooking = async () => {
+    if (!auth?.token) {
+      navigate("/login", { state: "/cart" });
+      return;
+    }
+
+    if (!selectedAddress) {
+      toast.error("Please add a delivery address before booking");
+      return;
+    }
+
+    try {
+      setBookingLoading(true);
+      await axios.post(
+        `${process.env.REACT_APP_API}/api/v1/product/book`,
+        {
+          cart,
+          deliveryAddress: selectedAddress,
+        },
+        {
+          headers: {
+            Authorization: auth.token,
+          },
+        },
+      );
+
+      localStorage.removeItem("pendingBooking");
+      navigate("/dashboard/user/orders");
+      toast.success("Booking created successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to create booking");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   const handleAddressChange = async (address) => {
     setSelectedAddress(address);
 
@@ -219,19 +252,6 @@ const CartPage = () => {
       },
     );
   };
-
-  const getToken = async () => {
-    try {
-      const { data } = await axios.get(
-        `${process.env.REACT_APP_API}/api/v1/product/braintree/token`,
-      );
-      setClientToken(data?.clientToken);
-    } catch (error) {}
-  };
-
-  useEffect(() => {
-    getToken();
-  }, [auth?.token]);
 
   useEffect(() => {
     const code = localStorage.getItem("coupon");
@@ -257,29 +277,6 @@ const CartPage = () => {
       setSelectedAddress(auth.user.currentAddress);
     }
   }, [auth?.user?.currentAddress]);
-
-  const handlePayment = async () => {
-    try {
-      setLoading(true);
-      const { nonce } = await instance.requestPaymentMethod();
-      await axios.post(
-        `${process.env.REACT_APP_API}/api/v1/product/braintree/payment`,
-        {
-          nonce,
-          cart,
-          couponCode,
-          deliveryAddress: selectedAddress,
-        },
-      );
-      setLoading(false);
-      localStorage.removeItem("cart");
-      setCart([]);
-      navigate("/dashboard/user/orders");
-      toast.success("Payment Completed successfully");
-    } catch (error) {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="container">
@@ -571,24 +568,12 @@ const CartPage = () => {
                   ""
                 ) : (
                   <>
-                    {/* <h3 className="text-danger text-underline">Pay Now</h3> */}
-                    <img src="./payQR.png" alt="payment QR" className="my-2" />
-                    {/* <DropIn
-                      options={{
-                        authorization: clientToken,
-                        paypal: {
-                          flow: "vault",
-                        },
-                      }}
-                      onInstance={(instance) => setInstance(instance)}
-                    /> */}
-
                     <button
                       className="btn btn-primary my-3"
-                      disabled={loading || !selectedAddress}
-                      onClick={handlePayment}
+                      disabled={bookingLoading}
+                      onClick={handleBooking}
                     >
-                      {loading ? "Processing ..." : "PAY NOW"}
+                      {bookingLoading ? "Booking..." : "BOOK NOW"}
                     </button>
                   </>
                 )}

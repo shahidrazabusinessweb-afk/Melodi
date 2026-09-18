@@ -3,6 +3,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { Helmet } from "react-helmet";
 import { Toaster } from "react-hot-toast";
+import { useLocation } from "react-router-dom";
 import ChatWidget from "../ChatWidget";
 
 const Layout = ({
@@ -12,6 +13,9 @@ const Layout = ({
   keywords = "bag, handbag, wallet, accessories",
   author = "Sweetie Ayman",
 }) => {
+  const location = useLocation();
+  const isAdminPage = location.pathname.startsWith("/dashboard/admin");
+
   return (
     <div className="app-shell">
       <Helmet>
@@ -27,7 +31,7 @@ const Layout = ({
         <Toaster position="top-center" />
         {children}
       </main>
-      <ChatWidget />
+      {!isAdminPage && <ChatWidget />}
       <Footer />
     </div>
   );

@@ -44,6 +44,32 @@ const Orders = () => {
         return "orange";
       case "Canceled":
         return "red";
+      case "Pending Payment":
+        return "gold";
+      default:
+        return "default";
+    }
+  };
+
+  const getPaymentStatus = (order) =>
+    order?.paymentStatus ||
+    (order?.payment?.[0]
+      ? order.payment[0].success
+        ? "Success"
+        : "Failed"
+      : "Pending");
+
+  const getPaymentColor = (paymentStatus) => {
+    switch (paymentStatus) {
+      case "Pending":
+        return "gold";
+      case "Processing":
+        return "blue";
+      case "Success":
+        return "green";
+      case "Canceled":
+      case "Failed":
+        return "red";
       default:
         return "default";
     }
@@ -70,12 +96,12 @@ const Orders = () => {
     },
     {
       title: "Payment",
-      render: (_, record) =>
-        record?.payment[0]?.success ? (
-          <Tag color="green">Success</Tag>
-        ) : (
-          <Tag color="red">Failed</Tag>
-        ),
+      render: (_, record) => {
+        const paymentStatus = getPaymentStatus(record);
+        return (
+          <Tag color={getPaymentColor(paymentStatus)}>{paymentStatus}</Tag>
+        );
+      },
     },
     {
       title: "Products",
@@ -98,7 +124,30 @@ const Orders = () => {
                   {p.description?.substring(0, 60)}...
                 </Text>
                 <br />
-                <Tag color="gold">${p.price}</Tag>
+                <Text type="secondary">
+                  Color:
+                </Text>
+                <span
+                  title={p.selectedColor || "Default"}
+                  style={{
+                    display: "inline-block",
+                    width: 18,
+                    height: 18,
+                    marginLeft: 6,
+                    borderRadius: "50%",
+                    verticalAlign: "middle",
+                    background: p.selectedColor || "#d9d9d9",
+                    border: "1px solid #999",
+                  }}
+                />
+                {p.selectedSize && (
+                  <>
+                    <br />
+                    <Text type="secondary">Size: {p.selectedSize}</Text>
+                  </>
+                )}
+                <br />
+                <Tag color="gold">₹{p.price}</Tag>
               </div>
             </Space>
           </Card>
@@ -113,6 +162,28 @@ const Orders = () => {
         {/* Sidebar */}
         <Col xs={24} md={6}>
           <UserMenu />
+          <div
+            className="mt-4 text-center"
+            style={{
+              width: "100%",
+              padding: "28px 16px 8px",
+              borderTop: "1px solid #e8edf2",
+            }}
+          >
+            <h5 className="mb-2">Scan & Pay</h5>
+            <p className="text-muted mb-3">Use your phone to scan the QR code</p>
+            <img
+              src="/payQR.png"
+              alt="Payment QR code"
+              className="d-block mx-auto"
+              style={{
+                width: "min(220px, 100%)",
+                height: "auto",
+                borderRadius: "8px",
+                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
+              }}
+            />
+          </div>
         </Col>
 
         {/* Content */}
@@ -128,10 +199,10 @@ const Orders = () => {
               <Table
                 rowKey="_id"
                 columns={columns}
-                dataSource={orders}
                 expandable={{
                   expandedRowRender,
                 }}
+                dataSource={orders}
                 pagination={{
                   pageSize: 5,
                 }}

@@ -3,6 +3,7 @@ import { isAdmin, requireSignIN } from "../middlewares/authMiddleware.js";
 import {
   braintreePaymentController,
   braintreeTokenController,
+  createBookingController,
   createProductController,
   deleteProductController,
   getProductByIdController,
@@ -50,5 +51,6 @@ router.get("/related-product/:pid/:cid", relatedProductController);
 router.get("/product-category/:slug", productCategoryController);
 
 router.get("/braintree/token", braintreeTokenController);
+router.post("/book", requireSignIN, createBookingController);
 router.post("/braintree/payment", requireSignIN, braintreePaymentController);
 export default router;

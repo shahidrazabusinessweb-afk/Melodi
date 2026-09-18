@@ -13,6 +13,7 @@ import PosterTemplate from "../models/PosterTemplateModel.js";
 
 const shouldSendToN8n = (value) => value === true || value === "true";
 
+// Helper: Send product details to n8n
 const sendProductToN8n = async (product, selectedTemplate = "template_1") => {
   const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
@@ -21,7 +22,7 @@ const sendProductToN8n = async (product, selectedTemplate = "template_1") => {
     return;
   }
 
-  const template = selectedTemplate.match?.(/^[a-f\d]{24}$/i)
+  const template = selectedTemplate?.match?.(/^[a-f\d]{24}$/i)
     ? await PosterTemplate.findById(selectedTemplate).lean()
     : null;
 
@@ -46,6 +47,50 @@ const sendProductToN8n = async (product, selectedTemplate = "template_1") => {
   );
 
   console.log("Product successfully sent to n8n with template:", selectedTemplate);
+};
+
+// Helper: Send new order / booking details to n8n
+const sendOrderToN8n = async (orderId) => {
+  const n8nOrderWebhookUrl = process.env.N8N_ORDER_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL;
+
+  if (!n8nOrderWebhookUrl) {
+    console.log("N8N_ORDER_WEBHOOK_URL is not configured");
+    return;
+  }
+
+  const populatedOrder = await OrderModel.findById(orderId)
+    .populate("buyer", "name email phone address")
+    .populate("products")
+    .lean();
+
+  if (!populatedOrder) return;
+
+  await axios.post(
+    n8nOrderWebhookUrl,
+    {
+      event: "new_order_booking",
+      orderId: populatedOrder._id.toString(),
+      status: populatedOrder.status,
+      paymentStatus: populatedOrder.paymentStatus,
+      deliveryAddress: populatedOrder.deliveryAddress,
+      buyer: {
+        id: populatedOrder.buyer?._id,
+        name: populatedOrder.buyer?.name,
+        email: populatedOrder.buyer?.email,
+        phone: populatedOrder.buyer?.phone,
+      },
+      products: populatedOrder.products?.map((prod) => ({
+        id: prod._id,
+        name: prod.name,
+        price: prod.price,
+        imageUrl: prod.photos?.[0]?.url || null,
+      })),
+      createdAt: populatedOrder.createdAt,
+    },
+    { timeout: 30000 }
+  );
+
+  console.log("Order successfully sent to n8n:", orderId);
 };
 
 export const createProductController = async (req, res) => {
@@ -665,20 +710,75 @@ export const braintreePaymentController = async (req, res) => {
           submitForSettlement: true,
         },
       },
-      function (error, result) {
+      async function (error, result) {
         if (result) {
-          const order = new OrderModel({
-            products: cart,
+          const order = await new OrderModel({
+            products: cart.map((item) => item._id || item),
             payment: result,
+            paymentStatus: "Success",
             buyer: req.user._id,
             deliveryAddress: req.body.deliveryAddress,
+            status: "Not Processed",
           }).save();
 
-          res.json({ ok: true });
+          // Trigger n8n for paid orders
+          sendOrderToN8n(order._id).catch((err) =>
+            console.error("Failed to send order to n8n:", err.message)
+          );
+
+          res.json({ ok: true, order });
         } else {
           res.status(500).send(error);
         }
       },
     );
-  } catch (error) {}
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error processing payment",
+      error: error.message,
+    });
+  }
+};
+
+export const createBookingController = async (req, res) => {
+  try {
+    const { cart, deliveryAddress } = req.body;
+
+    if (!Array.isArray(cart) || cart.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cart is empty",
+      });
+    }
+
+    if (!deliveryAddress?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery address is required",
+      });
+    }
+
+    const order = await OrderModel.create({
+      products: cart.map((item) => item._id || item),
+      payment: [],
+      paymentStatus: "Pending",
+      buyer: req.user._id,
+      deliveryAddress,
+      status: "Pending Payment",
+    });
+
+    // Trigger n8n notification asynchronously
+    sendOrderToN8n(order._id).catch((err) =>
+      console.error("Failed to send booking order to n8n:", err.message)
+    );
+
+    res.status(201).json({ success: true, order });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating booking",
+      error: error.message,
+    });
+  }
 };
